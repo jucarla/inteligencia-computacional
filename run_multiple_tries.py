@@ -153,7 +153,7 @@ def main():
     # Configuração
     num_tries = 1  # Número de tentativas por seed
     num_seeds = 10  # Número de seeds diferentes para tentar (usado apenas no modo random)
-    weights = [0.1, 0.5, 1.0, 1.5, 2.0]  # Pesos para testar
+    weights = np.arange(0.1, 10, 0.2)  # Pesos de 0.1 a 10  com passo de 0.2
     fixed_delay = 1  # Delay para todas as tentativas (ms)
     output_dir = "results"
     map_dir = "maps"
