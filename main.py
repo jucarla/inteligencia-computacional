@@ -67,16 +67,17 @@ class SmartBatteryPlayer(BasePlayer):
     - Considera pegar múltiplos pacotes no caminho
     - Considera custo de recarga vs benefício da entrega
     """
-    def __init__(self, position):
+    def __init__(self, position, weight=1.0):
         super().__init__(position)
-        self.base_battery_threshold = 25  # Limite base para recarregar
-        self.base_min_battery = 15       # Bateria mínima base
+        self.weight = weight  # Peso para ajustar os parâmetros do jogador
+        self.base_battery_threshold = 25 * weight  # Limite base para recarregar
+        self.base_min_battery = 15 * weight       # Bateria mínima base
         self.delivery_points = 50        # Pontos por entrega
         self.step_cost = 1               # Custo de um passo normal
         self.no_battery_step_cost = 5    # Custo de um passo sem bateria
         self.max_cargo = 4              # Máximo de pacotes que pode carregar
-        self.nearby_package_range = 5    # Distância para considerar pacotes próximos
-        self.max_path_deviation = 3      # Desvio máximo permitido do caminho direto
+        self.nearby_package_range = 5 * weight    # Distância para considerar pacotes próximos
+        self.max_path_deviation = 3 * weight      # Desvio máximo permitido do caminho direto
 
     def distance_to(self, pos1, pos2):
         """Calcula a distância de Manhattan entre duas posições"""
@@ -478,12 +479,12 @@ class World:
 # CLASSE MAZE: Lógica do jogo e planejamento de caminhos (A*)
 # ==========================
 class Maze:
-    def __init__(self, seed=None):
+    def __init__(self, seed=None, delay=100):
         self.world = World(seed)
         self.running = True
         self.score = 0
         self.steps = 0
-        self.delay = 100  # milissegundos entre movimentos
+        self.delay = delay  # milissegundos entre movimentos
         self.path = []
         self.num_deliveries = 0  # contagem de entregas realizadas
 
@@ -598,8 +599,21 @@ if __name__ == "__main__":
         default=None,
         help="Valor do seed para recriar o mesmo mundo (opcional)."
     )
+    parser.add_argument(
+        "--weight",
+        type=float,
+        default=1.0,
+        help="Peso para ajustar os parâmetros do SmartBatteryPlayer (0.1 a 2.0)."
+    )
+    parser.add_argument(
+        "--delay",
+        type=int,
+        default=100,
+        help="Delay em milissegundos entre movimentos (padrão: 100)."
+    )
     args = parser.parse_args()
     
-    maze = Maze(seed=args.seed)
+    maze = Maze(seed=args.seed, delay=args.delay)
+    maze.world.player = SmartBatteryPlayer(maze.world.player.position, args.weight)
     maze.game_loop()
 
