@@ -3,7 +3,17 @@ import random
 import heapq
 import sys
 import argparse
+import os
+import time
+import imageio
 from abc import ABC, abstractmethod
+
+# Importamos OpenCV apenas se disponível
+try:
+    import cv2
+    OPENCV_AVAILABLE = True
+except ImportError:
+    OPENCV_AVAILABLE = False
 
 # ==========================
 # CLASSES DE PLAYER
@@ -622,7 +632,7 @@ class World:
 # CLASSE MAZE: Lógica do jogo e planejamento de caminhos (A*)
 # ==========================
 class Maze:
-    def __init__(self, seed=None, delay=100):
+    def __init__(self, seed=None, delay=100, record=False, video_format='gif'):
         self.world = World(seed)
         self.running = True
         self.score = 0
@@ -630,6 +640,12 @@ class Maze:
         self.delay = delay  # milissegundos entre movimentos
         self.path = []
         self.num_deliveries = 0  # contagem de entregas realizadas
+        
+        # Configurações para gravação de vídeo
+        self.record = record
+        self.video_format = video_format  # 'gif' ou 'mp4'
+        self.frames = []  # Lista para armazenar os frames capturados
+        self.video_writer = None  # Para OpenCV
 
     def heuristic(self, a, b):
         # Distância de Manhattan
@@ -754,6 +770,14 @@ class Maze:
         return []
 
     def game_loop(self):
+        # Cria diretório para salvar o vídeo se estiver em modo de gravação
+        if self.record:
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            video_dir = f"videos"
+            os.makedirs(video_dir, exist_ok=True)
+            video_filename = f"{video_dir}/game_recording_{timestamp}.gif"
+            print(f"Gravando vídeo para: {video_filename}")
+            
         # O jogo termina quando o número de entregas realizadas é igual ao total de itens.
         while self.running:
             if self.num_deliveries >= self.world.total_items:
@@ -787,6 +811,15 @@ class Maze:
                     self.world.player.battery = 60
                     print("Bateria recarregada!")
                 self.world.draw_world(self.path, self.steps, self.score)
+                
+                # Captura o frame atual para o vídeo se estiver em modo de gravação
+                if self.record:
+                    # Converte a tela do pygame para um array numpy
+                    frame = pygame.surfarray.array3d(self.world.screen)
+                    # Transpõe a matriz para o formato correto
+                    frame = frame.transpose([1, 0, 2])
+                    self.frames.append(frame)
+                
                 pygame.time.wait(self.delay)
 
             # Ao chegar ao alvo, processa a coleta ou entrega:
@@ -805,11 +838,30 @@ class Maze:
                     print("Pacote entregue em", target, "Cargo agora:", self.world.player.cargo)
                 # Atualiza o display após coleta/entrega
                 self.world.draw_world(self.path, self.steps, self.score)
+                
+                # Captura também esse frame
+                if self.record:
+                    frame = pygame.surfarray.array3d(self.world.screen)
+                    frame = frame.transpose([1, 0, 2])
+                    self.frames.append(frame)
+                    
             print(f"Passos: {self.steps}, Pontuação: {self.score}, Cargo: {self.world.player.cargo}, Bateria: {self.world.player.battery}, Entregas: {self.num_deliveries}")
 
         print("Fim de jogo!")
         print("Pontuação final:", self.score)
         print("Total de passos:", self.steps)
+        
+        # Salva o vídeo gravado
+        if self.record and self.frames:
+            print(f"Salvando vídeo do jogo...")
+            # Reduce FPS if too many frames (limit to ~15 seconds at 24fps)
+            total_frames = len(self.frames)
+            fps = min(24, max(10, total_frames // 15))
+            
+            # Salva o GIF
+            imageio.mimsave(video_filename, self.frames, fps=fps)
+            print(f"Vídeo salvo em: {video_filename}")
+        
         pygame.quit()
 
 # ==========================
@@ -837,9 +889,14 @@ if __name__ == "__main__":
         default=100,
         help="Delay em milissegundos entre movimentos (padrão: 100)."
     )
+    parser.add_argument(
+        "--record",
+        action="store_true",
+        help="Grava o vídeo do jogo (opcional)."
+    )
     args = parser.parse_args()
     
-    maze = Maze(seed=args.seed, delay=args.delay)
+    maze = Maze(seed=args.seed, delay=args.delay, record=args.record)
     maze.world.player = SmartBatteryPlayer(maze.world.player.position, args.weight)
     maze.game_loop()
 
