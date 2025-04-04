@@ -57,7 +57,7 @@ class DefaultPlayer(BasePlayer):
                 return best
             else:
                 return None
-
+    
 class SmartBatteryPlayer(BasePlayer):
     """
     Implementação inteligente do jogador que usa análise de custo-benefício e thresholds dinâmicos.
@@ -67,7 +67,7 @@ class SmartBatteryPlayer(BasePlayer):
     - Considera pegar múltiplos pacotes no caminho
     - Considera custo de recarga vs benefício da entrega
     """
-    def __init__(self, position, weight=1.0):
+    def __init__(self, position, weight=2.8):
         super().__init__(position)
         self.weight = weight  # Peso para ajustar os parâmetros do jogador
         self.base_battery_threshold = 25 * weight  # Limite base para recarregar
@@ -421,6 +421,11 @@ class World:
         pygame.init()
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Delivery Bot")
+        
+        # Inicializa fontes para texto
+        pygame.font.init()
+        self.font = pygame.font.SysFont('Arial', 16)
+        self.font_bold = pygame.font.SysFont('Arial', 16, bold=True)
 
         # Carrega imagens para pacote, meta e recharger a partir de arquivos
         self.package_image = pygame.image.load("images/cargo.png")
@@ -437,6 +442,16 @@ class World:
         self.ground_color = (255, 255, 255)
         self.player_color = (0, 255, 0)
         self.path_color = (200, 200, 0)
+        
+        # Cores para o indicador de bateria
+        self.battery_full_color = (0, 200, 0)  # Verde
+        self.battery_medium_color = (200, 200, 0)  # Amarelo
+        self.battery_low_color = (200, 0, 0)  # Vermelho
+        self.battery_bg_color = (50, 50, 50)  # Cinza escuro
+        
+        # Variáveis para mostrar alertas de emergência
+        self.show_emergency_alert = False
+        self.alert_start_time = 0
 
     def generate_obstacles(self):
         """
@@ -496,7 +511,7 @@ class World:
             return self.map[y][x] == 0
         return False
 
-    def draw_world(self, path=None):
+    def draw_world(self, path=None, steps=0, score=0):
         self.screen.fill(self.ground_color)
         # Desenha os obstáculos (paredes)
         for (x, y) in self.walls:
@@ -526,7 +541,82 @@ class World:
         x, y = self.player.position
         rect = pygame.Rect(x * self.block_size, y * self.block_size, self.block_size, self.block_size)
         pygame.draw.rect(self.screen, self.player_color, rect)
+        
+        # Desenha o indicador de bateria e estatísticas
+        self.draw_battery_indicator()
+        self.draw_game_stats(steps, score)
+        
         pygame.display.flip()
+        
+    def draw_battery_indicator(self):
+        # Configuração do indicador de bateria
+        battery_width = 150
+        battery_height = 20
+        x_pos = 10
+        y_pos = 10
+        border = 2
+        
+        # Determina a cor baseada no nível da bateria
+        battery_percent = max(0, min(100, self.player.battery / 70 * 100))
+        if battery_percent > 60:
+            color = (0, 200, 0)  # Verde
+        elif battery_percent > 30:
+            color = (200, 200, 0)  # Amarelo
+        else:
+            color = (200, 0, 0)  # Vermelho
+            
+        # Desenha a borda do indicador
+        border_rect = pygame.Rect(x_pos, y_pos, battery_width, battery_height)
+        pygame.draw.rect(self.screen, (50, 50, 50), border_rect)
+        
+        # Desenha o nível atual da bateria
+        fill_width = int((battery_width - 2 * border) * (battery_percent / 100))
+        fill_rect = pygame.Rect(x_pos + border, y_pos + border, 
+                               fill_width, battery_height - 2 * border)
+        pygame.draw.rect(self.screen, color, fill_rect)
+        
+        # Adiciona o texto de porcentagem e valor da bateria
+        if not hasattr(self, 'font'):
+            pygame.font.init()
+            self.font = pygame.font.SysFont('Arial', 16)
+            
+        battery_text = f"Bateria: {self.player.battery}/70"
+        text_surface = self.font.render(battery_text, True, (0, 0, 0))
+        self.screen.blit(text_surface, (x_pos + battery_width + 10, y_pos))
+        
+        # Desenha o limite mínimo de bateria
+        if hasattr(self.player, 'base_min_battery'):
+            min_battery = min(70, self.player.base_min_battery)
+            min_x = x_pos + border + int((battery_width - 2 * border) * (min_battery / 70))
+            pygame.draw.line(self.screen, (200, 0, 0), 
+                           (min_x, y_pos), (min_x, y_pos + battery_height), 2)
+    
+    def draw_game_stats(self, steps, score):
+        if not hasattr(self, 'font'):
+            pygame.font.init()
+            self.font = pygame.font.SysFont('Arial', 16)
+            
+        # Texto para passos
+        steps_text = f"Passos: {steps}"
+        steps_surface = self.font.render(steps_text, True, (0, 0, 0))
+        self.screen.blit(steps_surface, (10, 40))
+        
+        # Texto para pontuação
+        score_text = f"Pontuação: {score}"
+        score_surface = self.font.render(score_text, True, (0, 0, 0))
+        self.screen.blit(score_surface, (10, 65))
+        
+        # Texto para carga
+        cargo_text = f"Pacotes: {self.player.cargo}"
+        cargo_surface = self.font.render(cargo_text, True, (0, 0, 0))
+        self.screen.blit(cargo_surface, (10, 90))
+        
+        # Informação sobre recharge
+        if hasattr(self.player, 'distance_to') and self.recharger:
+            recharge_dist = self.player.distance_to(self.player.position, self.recharger)
+            recharge_text = f"Dist. ao Recharger: {recharge_dist}"
+            recharge_surface = self.font.render(recharge_text, True, (0, 0, 0))
+            self.screen.blit(recharge_surface, (10, 115))
 
 # ==========================
 # CLASSE MAZE: Lógica do jogo e planejamento de caminhos (A*)
@@ -544,7 +634,88 @@ class Maze:
     def heuristic(self, a, b):
         # Distância de Manhattan
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
+    
+    def greedy_best_first(self, start, goal):
+        maze = self.world.map                                                       #Define o grid
+        size = self.world.maze_size                                                 #Define o tamanho do grid
+        neighbors = [(1, 0), (-1, 0), (0, 1), (0, -1)]                              #Define os nós vizinhos
 
+        open_set = []                                                               #Cria fila de prioridade de nós
+        heapq.heappush(open_set, (self.heuristic(start, goal), tuple(start)))       #Prioriza utilizando apenas a distância de Manhattan
+        came_from = {}                                                              #Dicionário para relacionar o nó anterior a cada nó
+        visited = set()                                                             #Cria um set para os nós já visitados
+
+        while open_set:                                                             
+            current = heapq.heappop(open_set)[1]                                    #Retira o nó de maior prioridade no set
+
+            if list(current) == goal:                                               #Se alcançar o destino, recria o caminho feito
+                path = []
+                while current in came_from:
+                    path.append(list(current))
+                    current = came_from[current]
+                path.reverse()
+                return path
+
+            visited.add(current)                                                    #Adiciona o nó ao set de visitados
+
+            for dx, dy in neighbors:                                                #Analisa os nós vizinhos
+                neighbor = (current[0] + dx, current[1] + dy)
+
+                if 0 <= neighbor[0] < size and 0 <= neighbor[1] < size:             #Verifica se o vizinho está dentro dos limites do grid
+                    if maze[neighbor[1]][neighbor[0]] == 1:                         #Verifica se é uma parede (obstáculo). Se for, ignore
+                        continue                                                    
+                else:                                                               #Se a posição for fora do mapa, ignore
+                    continue
+
+                if neighbor in visited:                                             #Se o nó já foi visitado, ignore
+                    continue
+
+                if neighbor not in [n[1] for n in open_set]:                        #Se o nó não foi adicionado ao set ainda, adicione
+                    came_from[neighbor] = current                                   #Adiciona o nó anterior do vizinho
+                    heapq.heappush(open_set, (self.heuristic(neighbor, goal), neighbor))
+
+        return []
+    
+    def dijkstra(self, start, goal):
+        maze = self.world.map
+        size = self.world.maze_size
+        neighbors = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        close_set = set()
+        came_from = {}
+        gscore = {tuple(start): 0}
+        oheap = []
+        heapq.heappush(oheap, (0, tuple(start)))
+
+        while oheap:
+            current = heapq.heappop(oheap)[1]
+            if list(current) == goal:
+                data = []
+                while current in came_from:
+                    data.append(list(current))
+                    current = came_from[current]
+                data.reverse()
+                return data
+
+            close_set.add(current)
+            for dx, dy in neighbors:
+                neighbor = (current[0] + dx, current[1] + dy)
+                tentative_g = gscore[current] + 1
+
+                if 0 <= neighbor[0] < size and 0 <= neighbor[1] < size:
+                    if maze[neighbor[1]][neighbor[0]] == 1:
+                        continue
+                else:
+                    continue
+
+                if neighbor in close_set and tentative_g >= gscore.get(neighbor, 0):
+                    continue
+
+                if tentative_g < gscore.get(neighbor, float('inf')) or neighbor not in [i[1] for i in oheap]:
+                    came_from[neighbor] = current
+                    gscore[neighbor] = tentative_g
+                    heapq.heappush(oheap, (tentative_g, neighbor))
+        return []
+    
     def astar(self, start, goal):
         maze = self.world.map
         size = self.world.maze_size
@@ -615,7 +786,7 @@ class Maze:
                 if self.world.recharger and pos == self.world.recharger:
                     self.world.player.battery = 60
                     print("Bateria recarregada!")
-                self.world.draw_world(self.path)
+                self.world.draw_world(self.path, self.steps, self.score)
                 pygame.time.wait(self.delay)
 
             # Ao chegar ao alvo, processa a coleta ou entrega:
@@ -632,6 +803,8 @@ class Maze:
                     self.world.goals.remove(target)
                     self.score += 50
                     print("Pacote entregue em", target, "Cargo agora:", self.world.player.cargo)
+                # Atualiza o display após coleta/entrega
+                self.world.draw_world(self.path, self.steps, self.score)
             print(f"Passos: {self.steps}, Pontuação: {self.score}, Cargo: {self.world.player.cargo}, Bateria: {self.world.player.battery}, Entregas: {self.num_deliveries}")
 
         print("Fim de jogo!")

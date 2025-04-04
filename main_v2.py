@@ -535,8 +535,30 @@ if __name__ == "__main__":
         default=None,
         help="Valor do seed para recriar o mesmo mundo (opcional)."
     )
+    parser.add_argument(
+        "--weight",
+        type=float,
+        default=1.0,
+        help="Peso do jogador (influencia o algoritmo de decisão)."
+    )
+    parser.add_argument(
+        "--delay",
+        type=int,
+        default=100,
+        help="Delay entre movimentos em milissegundos."
+    )
     args = parser.parse_args()
     
     maze = Maze(seed=args.seed)
+    maze.delay = args.delay  # Ajusta o delay conforme argumento
+    
+    # Ajusta o peso do jogador (se for SmartBatteryPlayer)
+    if isinstance(maze.world.player, SmartBatteryPlayer):
+        # Ajusta os parâmetros baseados no peso
+        maze.world.player.base_battery_threshold = 25 * args.weight
+        maze.world.player.base_min_battery = 15 * args.weight
+        maze.world.player.max_path_deviation = max(1, int(3 * args.weight))
+        maze.world.player.nearby_package_range = max(1, int(5 * args.weight))
+    
     maze.game_loop()
 

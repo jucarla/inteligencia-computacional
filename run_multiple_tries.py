@@ -88,6 +88,11 @@ def create_visualizations(results_df, output_dir):
     plt.style.use('default')  # Usando estilo padrão do matplotlib
     sns.set_palette("husl")
     
+    # Paleta de cores fixada para heatmaps, cobrindo a escala fixa de -620 até 200
+    fixed_cmap = plt.cm.get_cmap('YlOrRd')
+    fixed_vmin = -200
+    fixed_vmax = 150
+    
     # 1. Box Plot de Pontuações por Seed
     plt.figure(figsize=(12, 6))
     sns.boxplot(data=results_df, x='seed', y='score')
@@ -110,8 +115,9 @@ def create_visualizations(results_df, output_dir):
     try:
         pivot_df = results_df.pivot_table(values='score', index='seed', columns='weight', aggfunc='mean')
         plt.figure(figsize=(12, 8))
-        sns.heatmap(pivot_df, annot=True, fmt='.0f', cmap='YlOrRd')
-        plt.title('Pontuação Média por Mapa e Peso')
+        # Usar escala fixa para o heatmap
+        sns.heatmap(pivot_df, annot=True, fmt='.0f', cmap=fixed_cmap, vmin=fixed_vmin, vmax=fixed_vmax)
+        plt.title('Pontuação Média por Mapa e Peso (Escala fixada: -200 a 150)')
         plt.xlabel('Peso do Jogador')
         plt.ylabel('Seed do Mapa')
         plt.savefig(os.path.join(output_dir, 'score_heatmap.png'))
@@ -146,6 +152,9 @@ def create_visualizations(results_df, output_dir):
     # Adicionar linha horizontal no zero para referência
     plt.axhline(y=0, color='black', linestyle='-', alpha=0.3)
     
+    # Ajustar o limite do eixo y para manter consistência com a escala fixa
+    plt.ylim(fixed_vmin, fixed_vmax)
+    
     plt.savefig(os.path.join(output_dir, 'average_score_by_weight.png'))
     plt.close()
     
@@ -167,7 +176,20 @@ def create_visualizations(results_df, output_dir):
     plt.savefig(os.path.join(output_dir, 'final_battery_by_seed.png'))
     plt.close()
     
-    # 8. Gráfico separado para destacar os melhores pesos
+    # 8. Heatmap de Bateria Final (Seed vs Peso)
+    try:
+        battery_pivot = results_df.pivot_table(values='battery', index='seed', columns='weight', aggfunc='mean')
+        plt.figure(figsize=(12, 8))
+        sns.heatmap(battery_pivot, annot=True, fmt='.0f', cmap='Blues')
+        plt.title('Bateria Final Média por Mapa e Peso')
+        plt.xlabel('Peso do Jogador')
+        plt.ylabel('Seed do Mapa')
+        plt.savefig(os.path.join(output_dir, 'battery_heatmap.png'))
+        plt.close()
+    except Exception as e:
+        print(f"Erro ao criar heatmap de bateria: {e}")
+    
+    # 9. Gráfico separado para destacar os melhores pesos
     try:
         # Identificar pesos que tiveram pontuações positivas em todos os mapas
         best_weights = []
@@ -198,6 +220,99 @@ def create_visualizations(results_df, output_dir):
             plt.close()
     except Exception as e:
         print(f"Erro ao criar gráfico de melhores pesos: {e}")
+        
+    # 10. Comparação de peso vs passos (tempo para solução)
+    plt.figure(figsize=(12, 6))
+    step_pivot = results_df.pivot_table(values='steps', index='seed', columns='weight', aggfunc='mean')
+    sns.heatmap(step_pivot, annot=True, fmt='.0f', cmap='Greens', vmin=60, vmax=250)
+    plt.title('Média de Passos por Mapa e Peso (Escala fixada: 60 a 250)')
+    plt.xlabel('Peso do Jogador')
+    plt.ylabel('Seed do Mapa')
+    plt.savefig(os.path.join(output_dir, 'steps_heatmap.png'))
+    plt.close()
+    
+    # 11. NOVOS GRÁFICOS DE CORRELAÇÃO
+    
+    # Gráfico de correlação: Bateria Final vs Score
+    plt.figure(figsize=(10, 8))
+    sns.scatterplot(data=results_df, x='battery', y='score', hue='weight', palette='viridis', s=100, alpha=0.7)
+    plt.title('Correlação entre Bateria Final e Pontuação')
+    plt.xlabel('Bateria Final')
+    plt.ylabel('Pontuação')
+    # Adicionar linha de tendência
+    sns.regplot(data=results_df, x='battery', y='score', scatter=False, color='red')
+    plt.savefig(os.path.join(output_dir, 'correlation_battery_score.png'))
+    plt.close()
+    
+    # Gráfico de correlação: Passos vs Score 
+    plt.figure(figsize=(10, 8))
+    sns.scatterplot(data=results_df, x='steps', y='score', hue='weight', palette='viridis', s=100, alpha=0.7)
+    plt.title('Correlação entre Número de Passos e Pontuação')
+    plt.xlabel('Número de Passos')
+    plt.ylabel('Pontuação')
+    # Adicionar linha de tendência
+    sns.regplot(data=results_df, x='steps', y='score', scatter=False, color='red')
+    # Definir limites do eixo y entre -150 e 150
+    plt.ylim(-150, 150)
+    plt.savefig(os.path.join(output_dir, 'correlation_steps_score.png'))
+    plt.close()
+    
+    # Gráfico de correlação: Bateria vs Passos
+    plt.figure(figsize=(10, 8))
+    sns.scatterplot(data=results_df, x='battery', y='steps', hue='weight', palette='viridis', s=100, alpha=0.7)
+    plt.title('Correlação entre Bateria Final e Número de Passos')
+    plt.xlabel('Bateria Final')
+    plt.ylabel('Número de Passos')
+    # Adicionar linha de tendência
+    sns.regplot(data=results_df, x='battery', y='steps', scatter=False, color='red')
+    plt.savefig(os.path.join(output_dir, 'correlation_battery_steps.png'))
+    plt.close()
+    
+    # Matriz de correlação entre todas as variáveis numéricas
+    plt.figure(figsize=(12, 10))
+    correlation_matrix = results_df[['weight', 'score', 'steps', 'battery']].corr()
+    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1, fmt='.2f')
+    plt.title('Matriz de Correlação entre Variáveis')
+    plt.savefig(os.path.join(output_dir, 'correlation_matrix.png'))
+    plt.close()
+    
+    # 3D plot: Bateria, Passos e Score
+    try:
+        fig = plt.figure(figsize=(12, 10))
+        ax = fig.add_subplot(111, projection='3d')
+        
+        # Valores p/ scatter plot 3D
+        xs = results_df['battery']
+        ys = results_df['steps']
+        zs = results_df['score']
+        
+        # Colorir por peso
+        weights = results_df['weight']
+        
+        sc = ax.scatter(xs, ys, zs, c=weights, marker='o', s=50, cmap='viridis', alpha=0.7)
+        
+        ax.set_xlabel('Bateria Final')
+        ax.set_ylabel('Número de Passos')
+        ax.set_zlabel('Pontuação')
+        ax.set_title('Relação 3D: Bateria, Passos e Pontuação')
+        
+        # Adicionar barra de cores para indicar o peso
+        cbar = plt.colorbar(sc)
+        cbar.set_label('Peso do Jogador')
+        
+        plt.savefig(os.path.join(output_dir, 'correlation_3d.png'))
+        plt.close()
+    except Exception as e:
+        print(f"Erro ao criar gráfico 3D: {e}")
+    
+    # Pairplot - matriz de gráficos de dispersão para todas as combinações
+    try:
+        sns.pairplot(results_df[['weight', 'score', 'steps', 'battery']], diag_kind='kde')
+        plt.suptitle('Relações entre Peso, Pontuação, Passos e Bateria', y=1.02)
+        plt.savefig(os.path.join(output_dir, 'pairplot.png'))
+        plt.close()
+    except Exception as e:
+        print(f"Erro ao criar pairplot: {e}")
 
 def main():
     # Configuração

@@ -1,0 +1,8 @@
+Resultados do Jogo - Iniciado em 20250404_103249
+==================================================
+Delay fixo: 1ms
+Modo de geração de seeds: random
+Número de seeds: 10
+
+Seed: 8250
+------------------------------

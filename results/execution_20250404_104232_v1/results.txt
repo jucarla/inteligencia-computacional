@@ -1,0 +1,946 @@
+Resultados do Jogo - Iniciado em 20250404_104232
+==================================================
+Delay fixo: 1ms
+Modo de geração de seeds: random
+Número de seeds: 10
+
+Seed: 8250
+------------------------------
+Screenshot do mapa salvo como: maps\map_8250.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:35
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:37
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:38
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:40
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:42
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:43
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:45
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:46
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:48
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: -145
+  Passos: 253
+  Bateria Final: 14
+  Timestamp: 2025-04-04 10:42:49
+
+
+Seed: 1488
+------------------------------
+Screenshot do mapa salvo como: maps\map_1488.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:42:52
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:42:53
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:42:54
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:42:56
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:42:57
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:42:59
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:43:00
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:43:01
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:43:03
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: 25
+  Passos: 119
+  Bateria Final: 25
+  Timestamp: 2025-04-04 10:43:04
+
+
+Seed: 4827
+------------------------------
+Screenshot do mapa salvo como: maps\map_4827.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:06
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:08
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:10
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:11
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:13
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:15
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:16
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:18
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:20
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: -67
+  Passos: 219
+  Bateria Final: 43
+  Timestamp: 2025-04-04 10:43:21
+
+
+Seed: 9294
+------------------------------
+Screenshot do mapa salvo como: maps\map_9294.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:23
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:25
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:27
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:28
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:31
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:33
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:34
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:36
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:37
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: 98
+  Passos: 102
+  Bateria Final: 23
+  Timestamp: 2025-04-04 10:43:39
+
+
+Seed: 3109
+------------------------------
+Screenshot do mapa salvo como: maps\map_3109.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:41
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:42
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:43
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:45
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:46
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:47
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:49
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:50
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:52
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: -156
+  Passos: 192
+  Bateria Final: 39
+  Timestamp: 2025-04-04 10:43:53
+
+
+Seed: 3402
+------------------------------
+Screenshot do mapa salvo como: maps\map_3402.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:43:56
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:43:58
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:43:59
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:44:01
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:44:03
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:44:04
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:44:06
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:44:08
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:44:10
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: -57
+  Passos: 177
+  Bateria Final: 32
+  Timestamp: 2025-04-04 10:44:11
+
+
+Seed: 4258
+------------------------------
+Screenshot do mapa salvo como: maps\map_4258.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:13
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:15
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:16
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:17
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:19
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:20
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:21
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:23
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:24
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: -83
+  Passos: 179
+  Bateria Final: 37
+  Timestamp: 2025-04-04 10:44:25
+
+
+Seed: 2053
+------------------------------
+Screenshot do mapa salvo como: maps\map_2053.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:27
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:29
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:30
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:32
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:33
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:34
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:36
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:37
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:38
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: 38
+  Passos: 154
+  Bateria Final: 35
+  Timestamp: 2025-04-04 10:44:40
+
+
+Seed: 6350
+------------------------------
+Screenshot do mapa salvo como: maps\map_6350.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:42
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:43
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:44
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:45
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:47
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:48
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:50
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:52
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:54
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: 19
+  Passos: 113
+  Bateria Final: 34
+  Timestamp: 2025-04-04 10:44:55
+
+
+Seed: 6198
+------------------------------
+Screenshot do mapa salvo como: maps\map_6198.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:44:58
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:44:59
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:45:01
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:45:02
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:45:03
+
+
+Peso do Jogador: 3.000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:45:05
+
+
+Peso do Jogador: 3.200000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:45:06
+
+
+Peso do Jogador: 3.4000000000000012
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:45:08
+
+
+Peso do Jogador: 3.6000000000000014
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:45:10
+
+
+Peso do Jogador: 3.8000000000000016
+--------------------
+Tentativa 1:
+  Pontuação: 36
+  Passos: 100
+  Bateria Final: 46
+  Timestamp: 2025-04-04 10:45:12
+
+

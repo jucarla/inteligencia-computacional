@@ -1,0 +1,57 @@
+Resultados do Jogo - Iniciado em 20250404_153100
+==================================================
+Delay fixo: 1ms
+Modo de geração de seeds: random
+Número de seeds: 10
+
+Seed: 8250
+------------------------------
+Screenshot do mapa salvo como: maps\map_8250.png
+
+Peso do Jogador: 2.0
+--------------------
+Tentativa 1:
+  Pontuação: None
+  Passos: None
+  Bateria Final: None
+  Timestamp: 2025-04-04 15:31:04
+
+
+Peso do Jogador: 2.2
+--------------------
+Tentativa 1:
+  Pontuação: None
+  Passos: None
+  Bateria Final: None
+  Timestamp: 2025-04-04 15:31:06
+
+
+Peso do Jogador: 2.4000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: None
+  Passos: None
+  Bateria Final: None
+  Timestamp: 2025-04-04 15:31:07
+
+
+Peso do Jogador: 2.6000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: None
+  Passos: None
+  Bateria Final: None
+  Timestamp: 2025-04-04 15:31:08
+
+
+Peso do Jogador: 2.8000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: None
+  Passos: None
+  Bateria Final: None
+  Timestamp: 2025-04-04 15:31:11
+
+
+Peso do Jogador: 3.000000000000001
+--------------------

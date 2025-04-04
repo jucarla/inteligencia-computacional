@@ -344,8 +344,21 @@ if __name__ == "__main__":
         default=None,
         help="Valor do seed para recriar o mesmo mundo (opcional)."
     )
+    parser.add_argument(
+        "--weight",
+        type=float,
+        default=1.0,
+        help="Peso do jogador (não utilizado na versão original, apenas para compatibilidade)."
+    )
+    parser.add_argument(
+        "--delay",
+        type=int,
+        default=100,
+        help="Delay entre movimentos em milissegundos."
+    )
     args = parser.parse_args()
     
     maze = Maze(seed=args.seed)
+    maze.delay = args.delay  # Ajusta o delay conforme argumento
     maze.game_loop()
 
