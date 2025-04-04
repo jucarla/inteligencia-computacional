@@ -201,7 +201,9 @@ class SmartBatteryPlayer(BasePlayer):
             return self.battery >= delivery_dist
 
         recharger_dist = self.distance_to(current_pos, recharger_pos)
-        return (self.battery >= delivery_dist and delivery_dist <= recharger_dist)
+        # Para a última entrega, apenas verifica se tem bateria suficiente para chegar até o objetivo
+        # sem considerar a volta para o recharger (como estava originalmente)
+        return (self.battery >= delivery_dist)
 
     def escolher_alvo(self, world):
         if not world.recharger:
@@ -213,7 +215,14 @@ class SmartBatteryPlayer(BasePlayer):
 
         # Verifica se é a última entrega
         is_last = self.is_last_delivery(world)
-
+        
+        # Condição de recarga imediata: bateria igual ou menor à distância para recharger
+        if self.battery <= recharger_dist:
+            print(f"[ALERTA] RECARGA IMEDIATA! Bateria: {self.battery}, Distância ao recharger: {recharger_dist}")
+            world.show_emergency_alert = True  # Sinaliza para mostrar alerta na tela
+            world.alert_start_time = pygame.time.get_ticks()  # Marca o tempo de início do alerta
+            return world.recharger
+            
         # Se for a última entrega
         if is_last:
             goal = world.goals[0]  # Sabemos que só tem uma meta
@@ -254,6 +263,36 @@ class SmartBatteryPlayer(BasePlayer):
             print(f"Última entrega: Não encontrou caminho viável! Bateria: {self.battery}")
             return None
 
+        # LÓGICA PARA ENTREGAS NORMAIS (não-finais) - Evitar bateria negativa
+        
+        # Condição de bateria crítica para entregas normais: 
+        # se bateria for menor ou igual à distância para recharger + 5
+        # Sempre vai para o carregador, a não ser que esteja muito próximo do objetivo (raio <= 3)
+        if self.battery <= recharger_dist + 5:
+            # Verifica se há algum objetivo (pacote ou entrega) muito próximo
+            muito_proximo = False
+            
+            # Se estiver carregando pacotes, verifica se há alguma entrega muito próxima
+            if self.cargo > 0 and world.goals:
+                for goal in world.goals:
+                    if self.distance_to(current_pos, goal) <= 3:
+                        muito_proximo = True
+                        print(f"[ENTREGA PRÓXIMA] Completando entrega antes de recarregar! Bateria: {self.battery}, Distância: {self.distance_to(current_pos, goal)}")
+                        return goal
+            
+            # Se não estiver carregando pacotes, verifica se há algum pacote muito próximo
+            elif world.packages:
+                for pkg in world.packages:
+                    if self.distance_to(current_pos, pkg) <= 3:
+                        muito_proximo = True
+                        print(f"[PACOTE PRÓXIMO] Coletando pacote antes de recarregar! Bateria: {self.battery}, Distância: {self.distance_to(current_pos, pkg)}")
+                        return pkg
+            
+            # Se não tiver objetivo muito próximo, vai para o recharger
+            if not muito_proximo:
+                print(f"[ALERTA] Bateria crítica! Indo recarregar. Bateria: {self.battery}, Distância ao recharger: {recharger_dist}")
+                return world.recharger
+
         # Se não for a última entrega, aplica regra de recarga oportunista
         if recharger_dist <= 3 and self.battery < 45:
             return world.recharger
@@ -276,9 +315,14 @@ class SmartBatteryPlayer(BasePlayer):
                 for goal in world.goals:
                     value = self.calculate_path_value(current_pos, goal, world)
                     delivery_dist = self.distance_to(current_pos, goal)
-                    if (self.battery >= delivery_dist or 
-                        delivery_dist <= 5 or 
-                        value > self.delivery_points * 1.5):
+                    
+                    # Para entregas normais (não-finais):
+                    # 1. Se o alvo estiver muito próximo (<=3), podemos ir diretamente
+                    # 2. OU se a bateria for suficiente para o objetivo + distância para o recharger + 5 (margem)
+                    recharger_dist_from_goal = self.distance_to(goal, world.recharger)
+                    total_dist_needed = delivery_dist + recharger_dist_from_goal
+                    
+                    if delivery_dist <= 3 or self.battery >= total_dist_needed + 5:
                         if value > best_value:
                             best_value = value
                             best_goal = goal
@@ -286,8 +330,9 @@ class SmartBatteryPlayer(BasePlayer):
                 if best_goal:
                     return best_goal
 
-            if not is_last and self.battery < battery_threshold:
-                return world.recharger
+            # Se não encontrou destino seguro, recarrega
+            print(f"Nenhuma entrega segura encontrada. Indo recarregar. Bateria: {self.battery}")
+            return world.recharger
 
         # Se não estiver carregando ou puder pegar mais pacotes
         elif world.packages:
@@ -296,7 +341,14 @@ class SmartBatteryPlayer(BasePlayer):
             
             for pkg in world.packages:
                 pkg_dist = self.distance_to(current_pos, pkg)
-                if self.battery >= pkg_dist or pkg_dist <= 5:
+                
+                # Para coleta normal (não-final):
+                # 1. Se o pacote estiver muito próximo (<=3), podemos ir diretamente
+                # 2. OU se a bateria for suficiente para o pacote + distância para o recharger + 5 (margem)
+                pkg_to_recharger = self.distance_to(pkg, world.recharger)
+                total_dist_needed = pkg_dist + pkg_to_recharger
+                
+                if pkg_dist <= 3 or self.battery >= total_dist_needed + 5:
                     value = self.calculate_path_value(current_pos, pkg, world)
                     if value > best_value:
                         best_value = value
@@ -305,10 +357,11 @@ class SmartBatteryPlayer(BasePlayer):
             if best_pkg:
                 return best_pkg
 
-            if not is_last and self.battery < battery_threshold:
-                return world.recharger
+            # Se não encontrou pacote seguro, recarrega
+            print(f"Nenhum pacote seguro encontrado. Indo recarregar. Bateria: {self.battery}")
+            return world.recharger
 
-        if not is_last and self.battery < min_battery:
+        if self.battery < min_battery:
             return world.recharger
 
         return None

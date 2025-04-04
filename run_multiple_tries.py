@@ -12,6 +12,8 @@ from main import World
 
 def create_map_screenshot(seed, output_dir):
     """Cria uma captura de tela do mapa inicial para uma seed específica"""
+    # Inicializa pygame para cada mapa - isso é necessário porque main.py também usa pygame
+    # e faz o quit() quando termina, então precisamos reinicializar para cada mapa
     pygame.init()
     world = World(seed)
     os.makedirs(output_dir, exist_ok=True)
@@ -77,6 +79,11 @@ def generate_seeds(mode='random', num_seeds=10, start=None, end=None):
 
 def create_visualizations(results_df, output_dir):
     """Cria visualizações dos resultados"""
+    # Verificação básica para garantir que temos dados
+    if results_df.empty:
+        print("Aviso: Sem dados para criar visualizações")
+        return
+        
     # Configuração do estilo
     plt.style.use('default')  # Usando estilo padrão do matplotlib
     sns.set_palette("husl")
@@ -100,14 +107,17 @@ def create_visualizations(results_df, output_dir):
     plt.close()
     
     # 3. Heatmap de Pontuações (Seed vs Peso)
-    pivot_df = results_df.pivot_table(values='score', index='seed', columns='weight', aggfunc='mean')
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(pivot_df, annot=True, fmt='.0f', cmap='YlOrRd')
-    plt.title('Pontuação Média por Mapa e Peso')
-    plt.xlabel('Peso do Jogador')
-    plt.ylabel('Seed do Mapa')
-    plt.savefig(os.path.join(output_dir, 'score_heatmap.png'))
-    plt.close()
+    try:
+        pivot_df = results_df.pivot_table(values='score', index='seed', columns='weight', aggfunc='mean')
+        plt.figure(figsize=(12, 8))
+        sns.heatmap(pivot_df, annot=True, fmt='.0f', cmap='YlOrRd')
+        plt.title('Pontuação Média por Mapa e Peso')
+        plt.xlabel('Peso do Jogador')
+        plt.ylabel('Seed do Mapa')
+        plt.savefig(os.path.join(output_dir, 'score_heatmap.png'))
+        plt.close()
+    except Exception as e:
+        print(f"Erro ao criar heatmap: {e}")
     
     # 4. Gráfico de Linha de Pontuações ao Longo das Tentativas
     plt.figure(figsize=(12, 6))
@@ -124,10 +134,18 @@ def create_visualizations(results_df, output_dir):
     # 5. Gráfico de Barras de Média de Pontuação por Peso
     plt.figure(figsize=(12, 6))
     weight_means = results_df.groupby('weight')['score'].mean()
-    weight_means.plot(kind='bar')
+    
+    # Destacar barras com pontuação média positiva
+    colors = ['green' if score > 0 else 'red' for score in weight_means.values]
+    
+    weight_means.plot(kind='bar', color=colors)
     plt.title('Pontuação Média por Peso do Jogador')
     plt.xlabel('Peso do Jogador')
     plt.ylabel('Pontuação Média')
+    
+    # Adicionar linha horizontal no zero para referência
+    plt.axhline(y=0, color='black', linestyle='-', alpha=0.3)
+    
     plt.savefig(os.path.join(output_dir, 'average_score_by_weight.png'))
     plt.close()
     
@@ -148,12 +166,44 @@ def create_visualizations(results_df, output_dir):
     plt.ylabel('Bateria Final')
     plt.savefig(os.path.join(output_dir, 'final_battery_by_seed.png'))
     plt.close()
+    
+    # 8. Gráfico separado para destacar os melhores pesos
+    try:
+        # Identificar pesos que tiveram pontuações positivas em todos os mapas
+        best_weights = []
+        for weight in results_df['weight'].unique():
+            weight_data = results_df[results_df['weight'] == weight]
+            if all(weight_data['score'] > 0):
+                best_weights.append(weight)
+                
+        if best_weights:
+            # Informar quais pesos foram bons para todos os mapas
+            print(f"Pesos com resultados positivos em todos os mapas: {best_weights}")
+            
+            # Salvar essa informação em um arquivo de texto
+            with open(os.path.join(output_dir, 'best_weights.txt'), 'w') as f:
+                f.write("Pesos com resultados positivos em todos os mapas:\n")
+                for weight in best_weights:
+                    f.write(f"- {weight}\n")
+                    
+            # Filtrar apenas os pesos bons
+            best_df = results_df[results_df['weight'].isin(best_weights)]
+            
+            plt.figure(figsize=(12, 6))
+            sns.boxplot(data=best_df, x='weight', y='score')
+            plt.title('Distribuição de Pontuações dos Melhores Pesos')
+            plt.xlabel('Peso do Jogador (Positivo em Todos Mapas)')
+            plt.ylabel('Pontuação')
+            plt.savefig(os.path.join(output_dir, 'best_weights_scores.png'))
+            plt.close()
+    except Exception as e:
+        print(f"Erro ao criar gráfico de melhores pesos: {e}")
 
 def main():
     # Configuração
     num_tries = 1  # Número de tentativas por seed
     num_seeds = 10  # Número de seeds diferentes para tentar (usado apenas no modo random)
-    weights = np.arange(0.1, 10, 0.2)  # Pesos de 0.1 a 10  com passo de 0.2
+    weights = np.arange(2,4, 0.2)  # Pesos de 0.1 a 10  com passo de 0.2
     fixed_delay = 1  # Delay para todas as tentativas (ms)
     output_dir = "results"
     map_dir = "maps"
@@ -168,8 +218,8 @@ def main():
     os.makedirs(map_dir, exist_ok=True)
     
     # Gerar seeds baseado no modo
-    seeds = generate_seeds(mode=seed_mode, num_seeds=num_seeds, start=seed_start, end=seed_end)
-    
+    #seeds = generate_seeds(mode=seed_mode, num_seeds=num_seeds, start=seed_start, end=seed_end)
+    seeds = [8250, 1488, 4827, 9294, 3109, 3402, 4258, 2053, 6350, 6198]
     # Criar timestamp para nomear os arquivos
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
@@ -185,54 +235,59 @@ def main():
     # Lista para armazenar todos os resultados
     all_results = []
     
-    with open(results_file, 'w') as f:
-        f.write(f"Resultados do Jogo - Iniciado em {timestamp}\n")
-        f.write("=" * 50 + "\n")
-        f.write(f"Delay fixo: {fixed_delay}ms\n")
-        f.write(f"Modo de geração de seeds: {seed_mode}\n")
-        if seed_mode == 'range':
-            f.write(f"Intervalo de seeds: {seed_start} a {seed_end}\n")
-        else:
-            f.write(f"Número de seeds: {num_seeds}\n")
-        f.write("\n")
-        
-        for seed in seeds:
-            f.write(f"Seed: {seed}\n")
-            f.write("-" * 30 + "\n")
-            
-            # Criar e salvar screenshot do mapa
-            map_path = create_map_screenshot(seed, map_dir)
-            f.write(f"Screenshot do mapa salvo como: {map_path}\n")
-            
-            # Executar múltiplas tentativas para cada peso
-            for weight in weights:
-                f.write(f"\nPeso do Jogador: {weight}\n")
-                f.write("-" * 20 + "\n")
-                
-                for try_num in range(1, num_tries + 1):
-                    print(f"Executando seed {seed}, peso {weight}, tentativa {try_num}/{num_tries}")
-                    result = run_game_with_seed(seed, try_num, weight, fixed_delay)
-                    
-                    if result:
-                        all_results.append(result)
-                        f.write(f"Tentativa {try_num}:\n")
-                        f.write(f"  Pontuação: {result['score']}\n")
-                        f.write(f"  Passos: {result['steps']}\n")
-                        f.write(f"  Bateria Final: {result['battery']}\n")
-                        f.write(f"  Timestamp: {result['timestamp']}\n")
-                        f.write("\n")
-            
+    try:
+        with open(results_file, 'w') as f:
+            f.write(f"Resultados do Jogo - Iniciado em {timestamp}\n")
+            f.write("=" * 50 + "\n")
+            f.write(f"Delay fixo: {fixed_delay}ms\n")
+            f.write(f"Modo de geração de seeds: {seed_mode}\n")
+            if seed_mode == 'range':
+                f.write(f"Intervalo de seeds: {seed_start} a {seed_end}\n")
+            else:
+                f.write(f"Número de seeds: {num_seeds}\n")
             f.write("\n")
+            
+            for seed in seeds:
+                f.write(f"Seed: {seed}\n")
+                f.write("-" * 30 + "\n")
+                
+                # Criar e salvar screenshot do mapa
+                map_path = create_map_screenshot(seed, map_dir)
+                f.write(f"Screenshot do mapa salvo como: {map_path}\n")
+                
+                # Executar múltiplas tentativas para cada peso
+                for weight in weights:
+                    f.write(f"\nPeso do Jogador: {weight}\n")
+                    f.write("-" * 20 + "\n")
+                    
+                    for try_num in range(1, num_tries + 1):
+                        print(f"Executando seed {seed}, peso {weight}, tentativa {try_num}/{num_tries}")
+                        result = run_game_with_seed(seed, try_num, weight, fixed_delay)
+                        
+                        if result:
+                            all_results.append(result)
+                            f.write(f"Tentativa {try_num}:\n")
+                            f.write(f"  Pontuação: {result['score']}\n")
+                            f.write(f"  Passos: {result['steps']}\n")
+                            f.write(f"  Bateria Final: {result['battery']}\n")
+                            f.write(f"  Timestamp: {result['timestamp']}\n")
+                            f.write("\n")
+                
+                f.write("\n")
     
-    # Criar DataFrame com todos os resultados
-    results_df = pd.DataFrame(all_results)
+        # Criar DataFrame com todos os resultados
+        results_df = pd.DataFrame(all_results)
+        
+        # Criar visualizações
+        create_visualizations(results_df, charts_dir)
+        
+        print(f"\nResultados salvos em: {results_file}")
+        print(f"Screenshots dos mapas salvos em: {map_dir}")
+        print(f"Gráficos salvos em: {charts_dir}")
+        print(f"Seeds usados: {seeds}")
     
-    # Criar visualizações
-    create_visualizations(results_df, charts_dir)
-    
-    print(f"\nResultados salvos em: {results_file}")
-    print(f"Screenshots dos mapas salvos em: {map_dir}")
-    print(f"Gráficos salvos em: {charts_dir}")
+    except Exception as e:
+        print(f"Erro durante a execução: {e}")
 
 if __name__ == "__main__":
     main() 
