@@ -200,7 +200,7 @@ class SmartBatteryPlayer(BasePlayer):
             return self.battery >= delivery_dist
 
         recharger_dist = self.distance_to(current_pos, recharger_pos)
-        return (self.battery >= delivery_dist)
+        return (self.battery >= delivery_dist and delivery_dist <= recharger_dist)
 
     def escolher_alvo(self, world):
         if not world.recharger:
@@ -216,25 +216,6 @@ class SmartBatteryPlayer(BasePlayer):
         # Se for a última entrega
         if is_last:
             goal = world.goals[0]  # Sabemos que só tem uma meta
-            goal_dist = self.distance_to(current_pos, goal)
-            
-            # Debug info for last delivery situation
-            from inspect import currentframe, getframeinfo
-            current_frame = currentframe()
-            maze_frame = current_frame.f_back
-            maze_obj = None
-            
-            # Try to find Maze object in caller frames
-            while maze_frame:
-                if 'self' in maze_frame.f_locals and hasattr(maze_frame.f_locals['self'], 'score'):
-                    maze_obj = maze_frame.f_locals['self']
-                    break
-                maze_frame = maze_frame.f_back
-            
-            # Print debug info
-            current_points = maze_obj.score if maze_obj else "unknown"
-            print(f"[DEBUG] Última entrega: Pontos atuais: {current_points}, Bateria: {self.battery}, "
-                  f"Distância ao recharger: {recharger_dist}, Distância à entrega: {goal_dist}")
             
             if self.cargo > 0:  # Se já tem o pacote
                 # Verifica se vale a pena tentar entrega direta
@@ -242,7 +223,7 @@ class SmartBatteryPlayer(BasePlayer):
                     print(f"Última entrega: Indo entregar com pacote! Bateria: {self.battery}, Distância: {self.distance_to(current_pos, goal)}")
                     return goal
                 else:
-                    print(f"Última entrega: Precisa recarregar antes! Bateria: {self.battery}, Dist.Recharger: {recharger_dist},  Distância: {self.distance_to(current_pos, goal)}")
+                    print(f"Última entrega: Precisa recarregar antes! Bateria: {self.battery}, Dist.Recharger: {recharger_dist}")
                     return world.recharger
 
             elif world.packages:  # Se precisa pegar um pacote
@@ -262,21 +243,13 @@ class SmartBatteryPlayer(BasePlayer):
                             best_pkg = pkg
                     
                     if best_pkg:
-                        best_pkg_dist = self.distance_to(current_pos, best_pkg)
-                        print(f"[DEBUG] Última entrega (sem pacote): Melhor pacote à distância {best_pkg_dist}, "
-                              f"Distância total (pacote+entrega): {best_total_dist}, Bateria: {self.battery}")
                         print(f"Última entrega: Indo pegar pacote! Bateria: {self.battery}, Distância total: {best_total_dist}")
                         return best_pkg
                 
                 # Se não dá para fazer entrega direta, tenta recarregar
-                print(f"[DEBUG] Última entrega (sem pacote): Recarregando - Bateria atual: {self.battery}, "
-                      f"Dist.Recharger: {recharger_dist}, Pacotes disponíveis: {len(world.packages)}")
                 print(f"Última entrega: Precisa recarregar antes! Bateria: {self.battery}, Dist.Recharger: {recharger_dist}")
                 return world.recharger
                 
-            print(f"[DEBUG] Última entrega: Não encontrou caminho viável! Bateria: {self.battery}, "
-                  f"Cargo: {self.cargo}, Pacotes disponíveis: {len(world.packages)}, "
-                  f"Dist.Recharger: {recharger_dist}, Dist.Meta: {goal_dist}")
             print(f"Última entrega: Não encontrou caminho viável! Bateria: {self.battery}")
             return None
 
@@ -604,13 +577,6 @@ class Maze:
                     self.num_deliveries += 1
                     self.world.goals.remove(target)
                     self.score += 50
-                    
-                    # Check if this was the last delivery (no more goals left)
-                    if len(self.world.goals) == 0:
-                        print(f"[DEBUG] ÚLTIMA ENTREGA COMPLETA: Pontos finais: {self.score}, "
-                              f"Bateria restante: {self.world.player.battery}, "
-                              f"Total de passos: {self.steps}")
-                    
                     print("Pacote entregue em", target, "Cargo agora:", self.world.player.cargo)
             print(f"Passos: {self.steps}, Pontuação: {self.score}, Cargo: {self.world.player.cargo}, Bateria: {self.world.player.battery}, Entregas: {self.num_deliveries}")
 
