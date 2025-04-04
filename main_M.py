@@ -58,6 +58,73 @@ class DefaultPlayer(BasePlayer):
             else:
                 return None
 
+class SmartPlayer(BasePlayer):
+    def escolher_alvo(self, world):
+        sx, sy = self.position
+        pos = (sx, sy)
+
+        def manhattan(a, b):
+            return abs(a[0] - b[0]) + abs(a[1] - b[1])
+
+        recharge = world.recharger
+
+        def estimate_mission_cost():
+            if self.cargo == 0 and world.packages and world.goals:
+                nearest_pkg = min(world.packages, key=lambda p: manhattan(pos, p))
+                dist_to_pkg = manhattan(pos, nearest_pkg)
+                nearest_goal = min(world.goals, key=lambda g: manhattan(nearest_pkg, g))
+                dist_to_goal = manhattan(nearest_pkg, nearest_goal)
+                return dist_to_pkg + dist_to_goal
+            elif self.cargo > 0 and world.goals:
+                nearest_goal = min(world.goals, key=lambda g: manhattan(pos, g))
+                return manhattan(pos, nearest_goal)
+            return float('inf')
+
+        def estimate_recharge_then_mission():
+            dist_to_recharge = manhattan(pos, recharge)
+            after_recharge_pos = recharge
+
+            if self.cargo == 0 and world.packages and world.goals:
+                nearest_pkg = min(world.packages, key=lambda p: manhattan(after_recharge_pos, p))
+                dist_to_pkg = manhattan(after_recharge_pos, nearest_pkg)
+                nearest_goal = min(world.goals, key=lambda g: manhattan(nearest_pkg, g))
+                dist_to_goal = manhattan(nearest_pkg, nearest_goal)
+                return dist_to_recharge + dist_to_pkg + dist_to_goal
+            elif self.cargo > 0 and world.goals:
+                nearest_goal = min(world.goals, key=lambda g: manhattan(after_recharge_pos, g))
+                return dist_to_recharge + manhattan(after_recharge_pos, nearest_goal)
+            return float('inf')
+
+        mission_cost = estimate_mission_cost()
+
+        # 🔌 Se bateria não dá para missão, planeja recarregar
+        if self.battery < mission_cost:
+            print(f"[DEBUG] Bateria ({self.battery}) insuficiente ({mission_cost}) → considerando recarga")
+            # 💡 Verifica pacotes no caminho até o recarregador
+            path_to_recharge = world.astar(self.position, recharge)
+            if path_to_recharge:
+                for step in path_to_recharge:
+                    if step in world.packages:
+                        print(f"[DEBUG] Pegando pacote em {step} no caminho da recarga")
+                        return step
+            # Caso nenhum pacote esteja no caminho
+            print(f"[DEBUG] Indo recarregar (sem pacotes no caminho)")
+            return recharge
+
+        # Se está sem pacote e tem pacotes → pega o mais próximo
+        if self.cargo == 0 and world.packages:
+            best_pkg = min(world.packages, key=lambda p: manhattan(pos, p))
+            print(f"[DEBUG] Indo coletar pacote em {best_pkg}")
+            return best_pkg
+
+        # Se tem pacote → entrega
+        if self.cargo > 0 and world.goals:
+            best_goal = min(world.goals, key=lambda g: manhattan(pos, g))
+            print(f"[DEBUG] Indo entregar em {best_goal}")
+            return best_goal
+
+        return None
+
 class SmartBatteryPlayer(BasePlayer):
     """
     Implementação inteligente do jogador que usa análise de custo-benefício e thresholds dinâmicos.
@@ -408,7 +475,7 @@ class World:
             x = random.randint(0, self.maze_size - 1)
             y = random.randint(0, self.maze_size - 1)
             if self.map[y][x] == 0 and [x, y] not in self.packages and [x, y] not in self.goals:
-                return SmartBatteryPlayer([x, y])
+                return SmartPlayer([x, y])
 
     def generate_recharger(self):
         # Coloca o recharger próximo ao centro
@@ -463,6 +530,7 @@ class World:
 class Maze:
     def __init__(self, seed=None):
         self.world = World(seed)
+        self.world.astar = self.astar  # passa o A* para o mundo
         self.running = True
         self.score = 0
         self.steps = 0
