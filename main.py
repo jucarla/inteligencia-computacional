@@ -529,6 +529,47 @@ class Maze:
                     heapq.heappush(oheap, (fscore[neighbor], neighbor))
         return []
 
+    def greedy_best_first(self, start, goal):
+        maze = self.world.map                                                       #Define o grid
+        size = self.world.maze_size                                                 #Define o tamanho do grid
+        neighbors = [(1, 0), (-1, 0), (0, 1), (0, -1)]                              #Define os nós vizinhos
+
+        open_set = []                                                               #Cria fila de prioridade de nós
+        heapq.heappush(open_set, (self.heuristic(start, goal), tuple(start)))       #Prioriza utilizando apenas a distância de Manhattan
+        came_from = {}                                                              #Dicionário para relacionar o nó anterior a cada nó
+        visited = set()                                                             #Cria um set para os nós já visitados
+
+        while open_set:                                                             
+            current = heapq.heappop(open_set)[1]                                    #Retira o nó de maior prioridade no set
+
+            if list(current) == goal:                                               #Se alcançar o destino, recria o caminho feito
+                path = []
+                while current in came_from:
+                    path.append(list(current))
+                    current = came_from[current]
+                path.reverse()
+                return path
+
+            visited.add(current)                                                    #Adiciona o nó ao set de visitados
+
+            for dx, dy in neighbors:                                                #Analisa os nós vizinhos
+                neighbor = (current[0] + dx, current[1] + dy)
+
+                if 0 <= neighbor[0] < size and 0 <= neighbor[1] < size:             #Verifica se o vizinho está dentro dos limites do grid
+                    if maze[neighbor[1]][neighbor[0]] == 1:                         #Verifica se é uma parede (obstáculo). Se for, ignore
+                        continue                                                    
+                else:                                                               #Se a posição for fora do mapa, ignore
+                    continue
+
+                if neighbor in visited:                                             #Se o nó já foi visitado, ignore
+                    continue
+
+                if neighbor not in [n[1] for n in open_set]:                        #Se o nó não foi adicionado ao set ainda, adicione
+                    came_from[neighbor] = current                                   #Adiciona o nó anterior do vizinho
+                    heapq.heappush(open_set, (self.heuristic(neighbor, goal), neighbor))
+
+        return []
+
     def game_loop(self):
         # O jogo termina quando o número de entregas realizadas é igual ao total de itens.
         while self.running:
@@ -542,7 +583,7 @@ class Maze:
                 self.running = False
                 break
 
-            self.path = self.astar(self.world.player.position, target)
+            self.path = self.greedy_best_first(self.world.player.position, target)
             if not self.path:
                 print("Nenhum caminho encontrado para o alvo", target)
                 self.running = False
