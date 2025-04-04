@@ -1,0 +1,129 @@
+Resultados do Jogo - Iniciado em 20250401_081530
+==================================================
+Delay fixo: 1ms
+Modo de geração de seeds: random
+Número de seeds: 5
+
+Seed: 4910
+------------------------------
+Screenshot do mapa salvo como: maps\map_4910.png
+
+Peso do Jogador: 0.1
+--------------------
+Tentativa 1:
+  Pontuação: 30
+  Passos: 134
+  Bateria Final: 25
+  Timestamp: 2025-04-01 08:15:32
+
+
+Peso do Jogador: 0.30000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 30
+  Passos: 134
+  Bateria Final: 25
+  Timestamp: 2025-04-01 08:15:33
+
+
+Peso do Jogador: 0.5000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 30
+  Passos: 134
+  Bateria Final: 25
+  Timestamp: 2025-04-01 08:15:34
+
+
+Peso do Jogador: 0.7000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 30
+  Passos: 134
+  Bateria Final: 25
+  Timestamp: 2025-04-01 08:15:35
+
+
+Peso do Jogador: 0.9000000000000001
+--------------------
+Tentativa 1:
+  Pontuação: 30
+  Passos: 134
+  Bateria Final: 25
+  Timestamp: 2025-04-01 08:15:36
+
+
+Peso do Jogador: 1.1000000000000003
+--------------------
+Tentativa 1:
+  Pontuação: 46
+  Passos: 134
+  Bateria Final: 49
+  Timestamp: 2025-04-01 08:15:37
+
+
+Peso do Jogador: 1.3000000000000003
+--------------------
+Tentativa 1:
+  Pontuação: 46
+  Passos: 134
+  Bateria Final: 49
+  Timestamp: 2025-04-01 08:15:38
+
+
+Peso do Jogador: 1.5000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 46
+  Passos: 134
+  Bateria Final: 49
+  Timestamp: 2025-04-01 08:15:40
+
+
+Peso do Jogador: 1.7000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 46
+  Passos: 134
+  Bateria Final: 49
+  Timestamp: 2025-04-01 08:15:41
+
+
+Peso do Jogador: 1.9000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 46
+  Passos: 134
+  Bateria Final: 49
+  Timestamp: 2025-04-01 08:15:42
+
+
+Peso do Jogador: 2.1000000000000005
+--------------------
+Tentativa 1:
+  Pontuação: 46
+  Passos: 134
+  Bateria Final: 49
+  Timestamp: 2025-04-01 08:15:43
+
+
+Peso do Jogador: 2.3000000000000007
+--------------------
+Tentativa 1:
+  Pontuação: 46
+  Passos: 134
+  Bateria Final: 49
+  Timestamp: 2025-04-01 08:15:44
+
+
+Peso do Jogador: 2.5000000000000004
+--------------------
+Tentativa 1:
+  Pontuação: 46
+  Passos: 134
+  Bateria Final: 49
+  Timestamp: 2025-04-01 08:15:45
+
+
+Peso do Jogador: 2.7000000000000006
+--------------------

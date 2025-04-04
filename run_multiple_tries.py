@@ -34,6 +34,7 @@ def run_game_with_seed(seed, try_number, weight, delay=None):
         final_score = None
         final_steps = None
         final_battery = None
+        time_series_data = []
         
         for line in output_lines:
             if "Pontuação final:" in line:
@@ -43,15 +44,62 @@ def run_game_with_seed(seed, try_number, weight, delay=None):
             elif "Bateria:" in line and "Entregas:" in line:
                 # Extrai o valor da bateria da última linha de status
                 final_battery = int(line.split("Bateria:")[1].split(",")[0].strip())
+            elif "Passos:" in line and "Pontuação:" in line:
+                try:
+                    # Extrai dados da série temporal
+                    parts = line.split(",")
+                    steps = int(parts[0].split(":")[1].strip())
+                    score = int(parts[1].split(":")[1].strip())
+                    cargo = int(parts[2].split(":")[1].strip())
+                    battery = int(parts[3].split(":")[1].strip())
+                    deliveries = int(parts[4].split(":")[1].strip())
+                    
+                    time_series_data.append({
+                        'steps': steps,
+                        'score': score,
+                        'cargo': cargo,
+                        'battery': battery,
+                        'deliveries': deliveries
+                    })
+                except (IndexError, ValueError) as e:
+                    print(f"Erro ao processar linha de status: {line}")
+                    continue
+            elif "Pacote coletado" in line and time_series_data:
+                # Marca o ponto de coleta
+                time_series_data[-1]['event'] = 'collect'
+            elif "Pacote entregue" in line and time_series_data:
+                # Marca o ponto de entrega
+                time_series_data[-1]['event'] = 'deliver'
+            elif "Bateria recarregada" in line and time_series_data:
+                # Marca o ponto de recarga
+                time_series_data[-1]['event'] = 'recharge'
+            elif "Nenhum caminho encontrado" in line and time_series_data:
+                # Marca o ponto de falha
+                time_series_data[-1]['event'] = 'fail'
+        
+        # Se não tiver dados de série temporal mas tiver dados finais, cria um ponto final
+        if not time_series_data and final_score is not None and final_steps is not None and final_battery is not None:
+            time_series_data.append({
+                'steps': final_steps,
+                'score': final_score,
+                'cargo': 0,  # Valor padrão
+                'battery': final_battery,
+                'deliveries': 0,  # Valor padrão
+                'event': 'end'
+            })
+        
+        if not time_series_data:
+            print(f"Aviso: Nenhum dado de série temporal encontrado para seed {seed}")
         
         return {
             'seed': seed,
             'try_number': try_number,
             'weight': weight,
-            'delay': delay if delay is not None else 100,  # Valor padrão se não especificado
+            'delay': delay if delay is not None else 100,
             'score': final_score,
             'steps': final_steps,
             'battery': final_battery,
+            'time_series': time_series_data,
             'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
     except Exception as e:
@@ -75,10 +123,57 @@ def generate_seeds(mode='random', num_seeds=10, start=None, end=None):
     else:
         raise ValueError("Modo deve ser 'random' ou 'range'")
 
+def create_time_series_plot(data, seed, try_number, weight, output_dir):
+    """Cria gráfico de série temporal para um caso específico"""
+    if not data['time_series']:
+        print(f"Aviso: Sem dados de série temporal para seed {seed}, peso {weight}")
+        return
+    
+    try:
+        df = pd.DataFrame(data['time_series'])
+        
+        # Cria figura com 2 subplots (apenas bateria e pontuação)
+        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(12, 8))
+        fig.suptitle(f'Série Temporal - Seed {seed}, Tentativa {try_number}, Peso {weight:.4f}', fontsize=16)
+        
+        # Plot de Pontuação x Passos
+        ax1.plot(df['steps'], df['score'], label='Pontuação', color='blue')
+        ax1.set_ylabel('Pontuação')
+        ax1.set_xlabel('Passos')
+        ax1.grid(True)
+        
+        # Plot de Bateria x Passos
+        ax2.plot(df['steps'], df['battery'], label='Bateria', color='green')
+        ax2.set_ylabel('Bateria')
+        ax2.set_xlabel('Passos')
+        ax2.grid(True)
+        
+        # Marca eventos
+        for idx, row in df.iterrows():
+            if 'event' in row:
+                event = row['event']
+                if event == 'collect':
+                    ax1.scatter(row['steps'], row['score'], color='blue', marker='^', label='Coleta')
+                elif event == 'deliver':
+                    ax1.scatter(row['steps'], row['score'], color='green', marker='v', label='Entrega')
+                elif event == 'recharge':
+                    ax2.scatter(row['steps'], row['battery'], color='red', marker='o', label='Recarga')
+        
+        # Adiciona legendas
+        ax1.legend()
+        ax2.legend()
+        
+        # Ajusta layout
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, f'timeseries_seed{seed}_try{try_number}_weight{weight:.4f}.png'))
+        plt.close()
+    except Exception as e:
+        print(f"Erro ao criar gráfico de série temporal para seed {seed}: {str(e)}")
+
 def create_visualizations(results_df, output_dir):
     """Cria visualizações dos resultados"""
     # Configuração do estilo
-    plt.style.use('default')  # Usando estilo padrão do matplotlib
+    plt.style.use('default')
     sns.set_palette("husl")
     
     # 1. Box Plot de Pontuações por Seed
@@ -87,6 +182,7 @@ def create_visualizations(results_df, output_dir):
     plt.title('Distribuição de Pontuações por Mapa')
     plt.xlabel('Seed do Mapa')
     plt.ylabel('Pontuação')
+    plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.4f'))
     plt.savefig(os.path.join(output_dir, 'scores_by_seed.png'))
     plt.close()
     
@@ -96,13 +192,14 @@ def create_visualizations(results_df, output_dir):
     plt.title('Distribuição de Pontuações por Peso')
     plt.xlabel('Peso do Jogador')
     plt.ylabel('Pontuação')
+    plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.4f'))
     plt.savefig(os.path.join(output_dir, 'scores_by_weight.png'))
     plt.close()
     
     # 3. Heatmap de Pontuações (Seed vs Peso)
     pivot_df = results_df.pivot_table(values='score', index='seed', columns='weight', aggfunc='mean')
     plt.figure(figsize=(12, 8))
-    sns.heatmap(pivot_df, annot=True, fmt='.0f', cmap='YlOrRd')
+    sns.heatmap(pivot_df, annot=True, fmt='.4f', cmap='YlOrRd', annot_kws={'rotation': 90})
     plt.title('Pontuação Média por Mapa e Peso')
     plt.xlabel('Peso do Jogador')
     plt.ylabel('Seed do Mapa')
@@ -117,6 +214,7 @@ def create_visualizations(results_df, output_dir):
     plt.title('Evolução da Pontuação ao Longo das Tentativas')
     plt.xlabel('Número da Tentativa')
     plt.ylabel('Pontuação')
+    plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.4f'))
     plt.legend()
     plt.savefig(os.path.join(output_dir, 'score_evolution.png'))
     plt.close()
@@ -128,6 +226,7 @@ def create_visualizations(results_df, output_dir):
     plt.title('Pontuação Média por Peso do Jogador')
     plt.xlabel('Peso do Jogador')
     plt.ylabel('Pontuação Média')
+    plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.4f'))
     plt.savefig(os.path.join(output_dir, 'average_score_by_weight.png'))
     plt.close()
     
@@ -137,6 +236,7 @@ def create_visualizations(results_df, output_dir):
     plt.title('Distribuição da Bateria Final por Peso')
     plt.xlabel('Peso do Jogador')
     plt.ylabel('Bateria Final')
+    plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.4f'))
     plt.savefig(os.path.join(output_dir, 'final_battery_by_weight.png'))
     plt.close()
     
@@ -146,14 +246,20 @@ def create_visualizations(results_df, output_dir):
     plt.title('Distribuição da Bateria Final por Mapa')
     plt.xlabel('Seed do Mapa')
     plt.ylabel('Bateria Final')
+    plt.gca().yaxis.set_major_formatter(plt.FormatStrFormatter('%.4f'))
     plt.savefig(os.path.join(output_dir, 'final_battery_by_seed.png'))
     plt.close()
+    
+    # 8. Criar gráficos de série temporal para casos específicos
+    for _, result in results_df.iterrows():
+        if result['score'] < 0 or result['battery'] > 60:
+            create_time_series_plot(result, result['seed'], result['try_number'], result['weight'], output_dir)
 
 def main():
     # Configuração
     num_tries = 1  # Número de tentativas por seed
-    num_seeds = 10  # Número de seeds diferentes para tentar (usado apenas no modo random)
-    weights = np.arange(0.1, 10, 0.2)  # Pesos de 0.1 a 10  com passo de 0.2
+    num_seeds = 2  # Número de seeds diferentes para tentar (usado apenas no modo random)
+    weights = np.arange(0.1, 5, 0.2)  # Pesos de 0.1 a 10  com passo de 0.2
     fixed_delay = 1  # Delay para todas as tentativas (ms)
     output_dir = "results"
     map_dir = "maps"
@@ -233,6 +339,7 @@ def main():
     print(f"\nResultados salvos em: {results_file}")
     print(f"Screenshots dos mapas salvos em: {map_dir}")
     print(f"Gráficos salvos em: {charts_dir}")
+    print(f"Seeds: {seeds}")
 
 if __name__ == "__main__":
     main() 
