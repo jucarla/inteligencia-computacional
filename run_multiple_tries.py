@@ -24,7 +24,7 @@ def create_map_screenshot(seed, output_dir):
 def run_game_with_seed(seed, try_number, weight, delay=None):
     """Executa o jogo com uma seed específica e retorna o output"""
     try:
-        cmd = ['python', 'main_M.py', '--seed', str(seed), '--weight', str(weight)]
+        cmd = ['python', 'main_m.py', '--seed', str(seed), '--weight', str(weight)]
         if delay is not None:
             cmd.extend(['--delay', str(delay)])
             

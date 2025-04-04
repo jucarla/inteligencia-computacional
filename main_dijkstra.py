@@ -26,137 +26,121 @@ class BasePlayer(ABC):
         """
         pass
 
-class SmartPlayer(BasePlayer):
-    def __init__(self, position):
-        super().__init__(position)
-        # Parâmetros estratégicos configuráveis
-        self.base_battery_threshold = 25  # Começa a considerar recarregar quando a bateria está abaixo disso
-        self.base_min_battery = 15        # Bateria mínima crítica — força recarga
-        self.delivery_points = 50         # Pontos ganhos por entrega (usado para cálculo de score)
-        self.step_cost = 1                # Custo de bateria por movimento normal
-        self.no_battery_step_cost = 5     # Custo maior se andar sem bateria
-        self.max_cargo = 4                # Máximo de pacotes que o robô pode carregar
-        self.nearby_package_range = 5     # Raio para considerar pacotes próximos no caminho da recarga
-        self.max_path_deviation = 3       # Limite de desvio permitido para pegar pacotes "no caminho"
-        self.battery_buffer_ratio = 0.2   # Porcentagem extra de bateria como margem de segurança
-        self.just_recharged = False       # Flag para evitar recarga em loop
-        self.last_target = None           # Alvo anterior (pode ser usado em estratégias futuras)
-
+class DefaultPlayer(BasePlayer):
+    """
+    Implementação padrão do jogador.
+    Se não estiver carregando pacotes (cargo == 0), escolhe o pacote mais próximo.
+    Caso contrário, escolhe a meta (entrega) mais próxima.
+    """
     def escolher_alvo(self, world):
+        sx, sy = self.position
+        # Se não estiver carregando pacote e houver pacotes disponíveis:
+        if self.cargo == 0 and world.packages:
+            best = None
+            best_dist = float('inf')
+            for pkg in world.packages:
+                d = abs(pkg[0] - sx) + abs(pkg[1] - sy)
+                if d < best_dist:
+                    best_dist = d
+                    best = pkg
+            return best
+        else:
+            # Se estiver carregando ou não houver mais pacotes, vai para a meta de entrega (se existir)
+            if world.goals:
+                best = None
+                best_dist = float('inf')
+                for goal in world.goals:
+                    d = abs(goal[0] - sx) + abs(goal[1] - sy)
+                    if d < best_dist:
+                        best_dist = d
+                        best = goal
+                return best
+            else:
+                return None
+
+class SmartPlayer(BasePlayer):
+    def escolher_alvo(self, world):
+        # Posição atual do robô
         sx, sy = self.position
         pos = (sx, sy)
 
-        # =========================
-        # Funções auxiliares
-        # =========================
+        # Distância de Manhattan: usada para estimar custos (mais simples que o caminho real)
+        def manhattan(a, b):
+            return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
-        def path_cost(start, goal):
-            """
-            Calcula o custo real entre dois pontos usando A*.
-            Se não houver caminho, retorna infinito.
-            """
-            path = world.astar(start, goal)
-            if not path:
-                return float('inf')
-            return len(path) * self.step_cost
+        recharge = world.recharger  # Posição da estação de recarga
 
-        def best_package():
-            """
-            Seleciona o pacote com melhor relação custo-benefício, com base em:
-            - Custo real de caminho
-            - Desvio comparado ao caminho direto
-            - Score de entrega
-            """
-            if not world.packages or not world.goals:
-                return None, float('inf')
+        # Estima o custo da missão atual (coletar pacote + entregar)
+        def estimate_mission_cost():
+            # Se ainda não está carregando e há pacotes + metas:
+            if self.cargo == 0 and world.packages and world.goals:
+                nearest_pkg = min(world.packages, key=lambda p: manhattan(pos, p))
+                dist_to_pkg = manhattan(pos, nearest_pkg)
 
-            best_pkg = None
-            best_score = float('-inf')
+                nearest_goal = min(world.goals, key=lambda g: manhattan(nearest_pkg, g))
+                dist_to_goal = manhattan(nearest_pkg, nearest_goal)
 
-            for pkg in world.packages:
-                dist_to_pkg = path_cost(self.position, pkg)
-                nearest_goal = min(world.goals, key=lambda g: path_cost(pkg, g))
-                dist_to_goal = path_cost(pkg, nearest_goal)
+                return dist_to_pkg + dist_to_goal  # Total: ir até o pacote + entregar
+            elif self.cargo > 0 and world.goals:
+                nearest_goal = min(world.goals, key=lambda g: manhattan(pos, g))
+                return manhattan(pos, nearest_goal)  # Se já está com o pacote, só falta entregar
+            return float('inf')  # Missão impossível no momento
 
-                total = dist_to_pkg + dist_to_goal
-                direct = path_cost(self.position, nearest_goal)
-                deviation = total - direct  # quanto se desvia do caminho direto
+        # Estima o custo se ele for recarregar antes e só então cumprir a missão
+        def estimate_recharge_then_mission():
+            dist_to_recharge = manhattan(pos, recharge)
+            after_recharge_pos = recharge  # Posição futura após recarga
 
-                # Se o desvio é grande demais, ignora esse pacote
-                if deviation > self.max_path_deviation:
-                    continue
+            if self.cargo == 0 and world.packages and world.goals:
+                nearest_pkg = min(world.packages, key=lambda p: manhattan(after_recharge_pos, p))
+                dist_to_pkg = manhattan(after_recharge_pos, nearest_pkg)
 
-                # Score = benefício líquido dividido pelo desvio (mais eficiente = maior score)
-                score = (self.delivery_points - total) / (1 + deviation)
+                nearest_goal = min(world.goals, key=lambda g: manhattan(nearest_pkg, g))
+                dist_to_goal = manhattan(nearest_pkg, nearest_goal)
 
-                if score > best_score:
-                    best_score = score
-                    best_pkg = pkg
+                return dist_to_recharge + dist_to_pkg + dist_to_goal
+            elif self.cargo > 0 and world.goals:
+                nearest_goal = min(world.goals, key=lambda g: manhattan(after_recharge_pos, g))
+                return dist_to_recharge + manhattan(after_recharge_pos, nearest_goal)
 
-            return best_pkg, best_score
+            return float('inf')  # caso especial
 
-        def best_goal():
-            """
-            Retorna a meta de entrega mais próxima, com o custo real.
-            """
-            if not world.goals:
-                return None, float('inf')
-            goal = min(world.goals, key=lambda g: path_cost(self.position, g))
-            return goal, path_cost(self.position, goal)
+        # Calcula o custo da missão com a bateria atual
+        mission_cost = estimate_mission_cost()
 
-        def recharge_path():
-            """
-            Retorna o caminho até o ponto de recarga.
-            """
-            return world.astar(self.position, world.recharger)
+        # Se a bateria atual é insuficiente para completar a missão
+        if self.battery < mission_cost:
+            print(f"[DEBUG] Bateria ({self.battery}) insuficiente ({mission_cost}) → considerando recarga")
 
-        # =========================
-        # Lógica principal de decisão
-        # =========================
+            # Calcula o caminho real até a estação de recarga
+            path_to_recharge = world.astar(self.position, recharge)
 
-        # Caso: está carregando pacotes → entregar
-        if self.cargo > 0:
-            goal, cost = best_goal()
-            buffer = int(cost * self.battery_buffer_ratio)
+            # Verifica se há pacotes no caminho até o recarregador
+            if path_to_recharge:
+                for step in path_to_recharge:
+                    if step in world.packages:
+                        print(f"[DEBUG] Pegando pacote em {step} no caminho da recarga")
+                        return step  # Vai pegar o pacote antes de recarregar
 
-            # Se bateria é insuficiente, recarrega antes
-            if self.battery < cost + buffer and not self.just_recharged:
-                print("[DEBUG] Indo recarregar antes de entregar")
-                self.just_recharged = False
-                return world.recharger
+            # Nenhum pacote no caminho → vai recarregar direto
+            print(f"[DEBUG] Indo recarregar (sem pacotes no caminho)")
+            return recharge
 
-            # Bateria suficiente → vai entregar
-            print(f"[DEBUG] Indo entregar em {goal}")
-            self.just_recharged = False
-            return goal
+        # Se está sem carga, vai pegar o pacote mais próximo
+        if self.cargo == 0 and world.packages:
+            best_pkg = min(world.packages, key=lambda p: manhattan(pos, p))
+            print(f"[DEBUG] Indo coletar pacote em {best_pkg}")
+            return best_pkg
 
-        # Caso: não está carregando → buscar melhor pacote
-        pkg, pkg_score = best_package()
-        if pkg:
-            cost = path_cost(self.position, pkg)
-            buffer = int(cost * self.battery_buffer_ratio)
+        # Se está com pacote, vai entregar
+        if self.cargo > 0 and world.goals:
+            best_goal = min(world.goals, key=lambda g: manhattan(pos, g))
+            print(f"[DEBUG] Indo entregar em {best_goal}")
+            return best_goal
 
-            # Se bateria não for suficiente, recarrega antes de coletar
-            if self.battery < cost + buffer and not self.just_recharged:
-                print(f"[DEBUG] Indo recarregar antes de coletar {pkg}")
-                self.just_recharged = False
-                return world.recharger
+        # Nenhuma ação necessária
+        return None
 
-            # Bateria suficiente → vai coletar
-            print(f"[DEBUG] Indo coletar pacote em {pkg}")
-            self.just_recharged = False
-            return pkg
-
-        # Caso: sem pacotes ou metas acessíveis e bateria baixa → recarregar
-        if self.battery < self.base_min_battery:
-            print("[DEBUG] Bateria crítica! Recarregar imediatamente")
-            self.just_recharged = False
-            return world.recharger
-
-        # Fallback: nenhuma ação clara → recarrega por precaução
-        print("[DEBUG] Sem ação útil, recarregando por segurança")
-        self.just_recharged = False
-        return world.recharger
 
 class SmartBatteryPlayer(BasePlayer):
     """
@@ -508,7 +492,7 @@ class World:
             x = random.randint(0, self.maze_size - 1)
             y = random.randint(0, self.maze_size - 1)
             if self.map[y][x] == 0 and [x, y] not in self.packages and [x, y] not in self.goals:
-                return SmartPlayer([x, y])
+                return DefaultPlayer([x, y])
 
     def generate_recharger(self):
         # Coloca o recharger próximo ao centro
@@ -563,7 +547,7 @@ class World:
 class Maze:
     def __init__(self, seed=None):
         self.world = World(seed)
-        self.world.astar = self.astar  # passa o A* para o mundo
+        self.world.astar = self.dijkstra  # Substitui A* pelo Dijkstra
         self.running = True
         self.score = 0
         self.steps = 0
@@ -611,6 +595,47 @@ class Maze:
                     fscore[neighbor] = tentative_g + self.heuristic(neighbor, goal)
                     heapq.heappush(oheap, (fscore[neighbor], neighbor))
         return []
+
+    def dijkstra(self, start, goal):
+        maze = self.world.map
+        size = self.world.maze_size
+        neighbors = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        close_set = set()
+        came_from = {}
+        gscore = {tuple(start): 0}
+        oheap = []
+        heapq.heappush(oheap, (0, tuple(start)))
+
+        while oheap:
+            current = heapq.heappop(oheap)[1]
+            if list(current) == goal:
+                data = []
+                while current in came_from:
+                    data.append(list(current))
+                    current = came_from[current]
+                data.reverse()
+                return data
+
+            close_set.add(current)
+            for dx, dy in neighbors:
+                neighbor = (current[0] + dx, current[1] + dy)
+                tentative_g = gscore[current] + 1
+
+                if 0 <= neighbor[0] < size and 0 <= neighbor[1] < size:
+                    if maze[neighbor[1]][neighbor[0]] == 1:
+                        continue
+                else:
+                    continue
+
+                if neighbor in close_set and tentative_g >= gscore.get(neighbor, 0):
+                    continue
+
+                if tentative_g < gscore.get(neighbor, float('inf')) or neighbor not in [i[1] for i in oheap]:
+                    came_from[neighbor] = current
+                    gscore[neighbor] = tentative_g
+                    heapq.heappush(oheap, (tentative_g, neighbor))
+        return []
+
 
     def game_loop(self):
         # O jogo termina quando o número de entregas realizadas é igual ao total de itens.
