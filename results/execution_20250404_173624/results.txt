@@ -1,0 +1,317 @@
+Resultados do Jogo - Iniciado em 20250404_173624
+==================================================
+Delay fixo: 1ms
+Peso fixo: 2.8
+Modo de geração de seeds: random
+Número de seeds: 10
+
+Seed: 8250
+------------------------------
+Screenshot do mapa salvo como: maps\map_8250.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 37
+  Passos: 163
+  Bateria Final: 30
+  Timestamp: 2025-04-04 17:36:26
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: 55
+  Passos: 125
+  Bateria Final: 30
+  Timestamp: 2025-04-04 17:36:27
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 37
+  Passos: 163
+  Bateria Final: 30
+  Timestamp: 2025-04-04 17:36:29
+
+
+Seed: 1488
+------------------------------
+Screenshot do mapa salvo como: maps\map_1488.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 95
+  Passos: 105
+  Bateria Final: 15
+  Timestamp: 2025-04-04 17:36:30
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: 71
+  Passos: 125
+  Bateria Final: -1
+  Timestamp: 2025-04-04 17:36:31
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 95
+  Passos: 105
+  Bateria Final: 15
+  Timestamp: 2025-04-04 17:36:32
+
+
+Seed: 4827
+------------------------------
+Screenshot do mapa salvo como: maps\map_4827.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 14
+  Passos: 112
+  Bateria Final: 60
+  Timestamp: 2025-04-04 17:36:34
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: 14
+  Passos: 112
+  Bateria Final: 60
+  Timestamp: 2025-04-04 17:36:35
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 14
+  Passos: 112
+  Bateria Final: 60
+  Timestamp: 2025-04-04 17:36:36
+
+
+Seed: 9294
+------------------------------
+Screenshot do mapa salvo como: maps\map_9294.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 86
+  Passos: 114
+  Bateria Final: 11
+  Timestamp: 2025-04-04 17:36:38
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: 82
+  Passos: 118
+  Bateria Final: 11
+  Timestamp: 2025-04-04 17:36:39
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 86
+  Passos: 114
+  Bateria Final: 11
+  Timestamp: 2025-04-04 17:36:40
+
+
+Seed: 3109
+------------------------------
+Screenshot do mapa salvo como: maps\map_3109.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 2
+  Passos: 198
+  Bateria Final: 19
+  Timestamp: 2025-04-04 17:36:43
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: -22
+  Passos: 206
+  Bateria Final: 19
+  Timestamp: 2025-04-04 17:36:44
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 2
+  Passos: 198
+  Bateria Final: 19
+  Timestamp: 2025-04-04 17:36:46
+
+
+Seed: 3402
+------------------------------
+Screenshot do mapa salvo como: maps\map_3402.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 80
+  Passos: 120
+  Bateria Final: 29
+  Timestamp: 2025-04-04 17:36:48
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: 80
+  Passos: 120
+  Bateria Final: 29
+  Timestamp: 2025-04-04 17:36:51
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 80
+  Passos: 120
+  Bateria Final: 29
+  Timestamp: 2025-04-04 17:36:59
+
+
+Seed: 4258
+------------------------------
+Screenshot do mapa salvo como: maps\map_4258.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 43
+  Passos: 157
+  Bateria Final: 17
+  Timestamp: 2025-04-04 17:37:11
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: 39
+  Passos: 161
+  Bateria Final: 15
+  Timestamp: 2025-04-04 17:37:19
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 43
+  Passos: 157
+  Bateria Final: 17
+  Timestamp: 2025-04-04 17:37:26
+
+
+Seed: 2053
+------------------------------
+Screenshot do mapa salvo como: maps\map_2053.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 100
+  Passos: 100
+  Bateria Final: 23
+  Timestamp: 2025-04-04 17:37:35
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: 96
+  Passos: 104
+  Bateria Final: 23
+  Timestamp: 2025-04-04 17:37:40
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 100
+  Passos: 100
+  Bateria Final: 23
+  Timestamp: 2025-04-04 17:37:44
+
+
+Seed: 6350
+------------------------------
+Screenshot do mapa salvo como: maps\map_6350.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 69
+  Passos: 131
+  Bateria Final: 40
+  Timestamp: 2025-04-04 17:37:48
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: 29
+  Passos: 147
+  Bateria Final: 40
+  Timestamp: 2025-04-04 17:37:51
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 69
+  Passos: 131
+  Bateria Final: 40
+  Timestamp: 2025-04-04 17:37:54
+
+
+Seed: 6198
+------------------------------
+Screenshot do mapa salvo como: maps\map_6198.png
+
+Algoritmo: astar
+--------------------
+Tentativa 1:
+  Pontuação: 77
+  Passos: 123
+  Bateria Final: 19
+  Timestamp: 2025-04-04 17:37:59
+
+
+Algoritmo: greedy
+--------------------
+Tentativa 1:
+  Pontuação: 75
+  Passos: 125
+  Bateria Final: 19
+  Timestamp: 2025-04-04 17:38:01
+
+
+Algoritmo: dijkstra
+--------------------
+Tentativa 1:
+  Pontuação: 77
+  Passos: 123
+  Bateria Final: 19
+  Timestamp: 2025-04-04 17:38:04
+
+

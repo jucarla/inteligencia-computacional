@@ -12,6 +12,8 @@ from main import World
 
 def create_map_screenshot(seed, output_dir):
     """Cria uma captura de tela do mapa inicial para uma seed específica"""
+    # Inicializa pygame para cada mapa - isso é necessário porque main.py também usa pygame
+    # e faz o quit() quando termina, então precisamos reinicializar para cada mapa
     pygame.init()
     world = World(seed)
     os.makedirs(output_dir, exist_ok=True)
@@ -21,15 +23,24 @@ def create_map_screenshot(seed, output_dir):
     pygame.quit()
     return screenshot_path
 
-def run_game_with_seed(seed, try_number, weight, delay=None):
+def run_game_with_seed(seed, try_number, algorithm, delay=None):
     """Executa o jogo com uma seed específica e retorna o output"""
     try:
-        cmd = ['python', 'main.py', '--seed', str(seed), '--weight', str(weight)]
+        # Fixando o peso em 2.8
+        weight = 2.8
+        cmd = ['python', 'main.py', '--seed', str(seed), '--weight', str(weight), '--pathfinding_algorithm', algorithm]
         if delay is not None:
             cmd.extend(['--delay', str(delay)])
             
+        print(f"Executando comando: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
         
+        # Debug: imprimir o código de retorno e stderr se houver erro
+        if result.returncode != 0:
+            print(f"Erro ao executar o comando (código {result.returncode})")
+            print(f"STDERR: {result.stderr}")
+            return None
+            
         output_lines = result.stdout.split('\n')
         final_score = None
         final_steps = None
@@ -47,6 +58,7 @@ def run_game_with_seed(seed, try_number, weight, delay=None):
         return {
             'seed': seed,
             'try_number': try_number,
+            'algorithm': algorithm,
             'weight': weight,
             'delay': delay if delay is not None else 100,  # Valor padrão se não especificado
             'score': final_score,
@@ -77,83 +89,107 @@ def generate_seeds(mode='random', num_seeds=10, start=None, end=None):
 
 def create_visualizations(results_df, output_dir):
     """Cria visualizações dos resultados"""
+    # Verificação básica para garantir que temos dados
+    if results_df.empty:
+        print("Aviso: Sem dados para criar visualizações")
+        return
+        
     # Configuração do estilo
     plt.style.use('default')  # Usando estilo padrão do matplotlib
     sns.set_palette("husl")
     
-    # 1. Box Plot de Pontuações por Seed
-    plt.figure(figsize=(12, 6))
-    sns.boxplot(data=results_df, x='seed', y='score')
-    plt.title('Distribuição de Pontuações por Mapa')
-    plt.xlabel('Seed do Mapa')
-    plt.ylabel('Pontuação')
-    plt.savefig(os.path.join(output_dir, 'scores_by_seed.png'))
-    plt.close()
+    # Paleta de cores específica para os algoritmos
+    algorithm_colors = {
+        'astar': 'green',
+        'greedy': 'orange',
+        'dijkstra': 'blue'
+    }
     
-    # 2. Box Plot de Pontuações por Peso
-    plt.figure(figsize=(12, 6))
-    sns.boxplot(data=results_df, x='weight', y='score')
-    plt.title('Distribuição de Pontuações por Peso')
-    plt.xlabel('Peso do Jogador')
-    plt.ylabel('Pontuação')
-    plt.savefig(os.path.join(output_dir, 'scores_by_weight.png'))
-    plt.close()
+    # Gráfico de barras comparando algoritmos por seed
+    plt.figure(figsize=(14, 8))
     
-    # 3. Heatmap de Pontuações (Seed vs Peso)
-    pivot_df = results_df.pivot_table(values='score', index='seed', columns='weight', aggfunc='mean')
-    plt.figure(figsize=(12, 8))
-    sns.heatmap(pivot_df, annot=True, fmt='.0f', cmap='YlOrRd')
-    plt.title('Pontuação Média por Mapa e Peso')
-    plt.xlabel('Peso do Jogador')
-    plt.ylabel('Seed do Mapa')
-    plt.savefig(os.path.join(output_dir, 'score_heatmap.png'))
-    plt.close()
+    # Preparar dados para o gráfico
+    # Agrupar por seed e algoritmo e calcular a média da pontuação
+    grouped_data = results_df.groupby(['seed', 'algorithm'])['score'].mean().reset_index()
     
-    # 4. Gráfico de Linha de Pontuações ao Longo das Tentativas
-    plt.figure(figsize=(12, 6))
-    for seed in results_df['seed'].unique():
-        seed_data = results_df[results_df['seed'] == seed]
-        plt.plot(seed_data['try_number'], seed_data['score'], label=f'Mapa {seed}')
-    plt.title('Evolução da Pontuação ao Longo das Tentativas')
-    plt.xlabel('Número da Tentativa')
-    plt.ylabel('Pontuação')
+    # Pivotear para ter seeds como índice e algoritmos como colunas
+    pivot_data = grouped_data.pivot(index='seed', columns='algorithm', values='score')
+    
+    # Desenhar as barras agrupadas
+    bar_width = 0.25
+    seeds = pivot_data.index
+    x = np.arange(len(seeds))
+    
+    # Verificar quais algoritmos estão disponíveis nos dados
+    available_algorithms = pivot_data.columns.tolist()
+    
+    # Desenhar barras para cada algoritmo
+    for i, algorithm in enumerate(available_algorithms):
+        plt.bar(x + i*bar_width - bar_width, 
+                pivot_data[algorithm], 
+                bar_width, 
+                label=algorithm.capitalize(), 
+                color=algorithm_colors.get(algorithm, f'C{i}'))
+    
+    # Configurações do gráfico
+    plt.xlabel('Seed do Mapa', fontsize=12)
+    plt.ylabel('Pontuação Média', fontsize=12)
+    plt.title('Comparação da Pontuação por Algoritmo de Pathfinding (Peso fixo: 2.8)', fontsize=14)
+    plt.xticks(x, seeds)
     plt.legend()
-    plt.savefig(os.path.join(output_dir, 'score_evolution.png'))
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    # Adicionar valores nas barras
+    for i, algorithm in enumerate(available_algorithms):
+        for j, score in enumerate(pivot_data[algorithm]):
+            plt.text(j + i*bar_width - bar_width, score + 5, f'{int(score)}', 
+                     ha='center', va='bottom', fontsize=9, rotation=0)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'algorithm_comparison.png'))
     plt.close()
     
-    # 5. Gráfico de Barras de Média de Pontuação por Peso
-    plt.figure(figsize=(12, 6))
-    weight_means = results_df.groupby('weight')['score'].mean()
-    weight_means.plot(kind='bar')
-    plt.title('Pontuação Média por Peso do Jogador')
-    plt.xlabel('Peso do Jogador')
-    plt.ylabel('Pontuação Média')
-    plt.savefig(os.path.join(output_dir, 'average_score_by_weight.png'))
+    # Boxplot da distribuição de pontuações por algoritmo
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(data=results_df, x='algorithm', y='score', palette=algorithm_colors)
+    plt.title('Distribuição de Pontuações por Algoritmo de Pathfinding')
+    plt.xlabel('Algoritmo')
+    plt.ylabel('Pontuação')
+    plt.savefig(os.path.join(output_dir, 'score_boxplot_by_algorithm.png'))
     plt.close()
     
-    # 6. Gráfico de Bateria Final por Peso
-    plt.figure(figsize=(12, 6))
-    sns.boxplot(data=results_df, x='weight', y='battery')
-    plt.title('Distribuição da Bateria Final por Peso')
-    plt.xlabel('Peso do Jogador')
+    # Boxplot da distribuição de passos por algoritmo
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(data=results_df, x='algorithm', y='steps')
+    plt.title('Distribuição de Passos por Algoritmo de Pathfinding')
+    plt.xlabel('Algoritmo')
+    plt.ylabel('Número de Passos')
+    plt.savefig(os.path.join(output_dir, 'steps_boxplot_by_algorithm.png'))
+    plt.close()
+    
+    # Boxplot da distribuição de bateria final por algoritmo
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(data=results_df, x='algorithm', y='battery')
+    plt.title('Distribuição de Bateria Final por Algoritmo de Pathfinding')
+    plt.xlabel('Algoritmo')
     plt.ylabel('Bateria Final')
-    plt.savefig(os.path.join(output_dir, 'final_battery_by_weight.png'))
+    plt.savefig(os.path.join(output_dir, 'battery_boxplot_by_algorithm.png'))
     plt.close()
     
-    # 7. Gráfico de Bateria Final por Seed
-    plt.figure(figsize=(12, 6))
-    sns.boxplot(data=results_df, x='seed', y='battery')
-    plt.title('Distribuição da Bateria Final por Mapa')
-    plt.xlabel('Seed do Mapa')
-    plt.ylabel('Bateria Final')
-    plt.savefig(os.path.join(output_dir, 'final_battery_by_seed.png'))
+    # Scatter plot comparando passos vs score, colorizado por algoritmo
+    plt.figure(figsize=(10, 8))
+    sns.scatterplot(data=results_df, x='steps', y='score', hue='algorithm', palette=algorithm_colors, s=100, alpha=0.7)
+    plt.title('Relação entre Número de Passos e Pontuação por Algoritmo')
+    plt.xlabel('Número de Passos')
+    plt.ylabel('Pontuação')
+    plt.savefig(os.path.join(output_dir, 'steps_vs_score.png'))
     plt.close()
 
 def main():
     # Configuração
     num_tries = 1  # Número de tentativas por seed
     num_seeds = 10  # Número de seeds diferentes para tentar (usado apenas no modo random)
-    weights = [0.1, 0.5, 1.0, 1.5, 2.0]  # Pesos para testar
+    algorithms = ['astar', 'greedy', 'dijkstra']  # Algoritmos de pathfinding a testar
     fixed_delay = 1  # Delay para todas as tentativas (ms)
     output_dir = "results"
     map_dir = "maps"
@@ -168,8 +204,8 @@ def main():
     os.makedirs(map_dir, exist_ok=True)
     
     # Gerar seeds baseado no modo
-    seeds = generate_seeds(mode=seed_mode, num_seeds=num_seeds, start=seed_start, end=seed_end)
-    
+    #seeds = generate_seeds(mode=seed_mode, num_seeds=num_seeds, start=seed_start, end=seed_end)
+    seeds = [8250, 1488, 4827, 9294, 3109, 3402, 4258, 2053, 6350, 6198]
     # Criar timestamp para nomear os arquivos
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     
@@ -185,54 +221,60 @@ def main():
     # Lista para armazenar todos os resultados
     all_results = []
     
-    with open(results_file, 'w') as f:
-        f.write(f"Resultados do Jogo - Iniciado em {timestamp}\n")
-        f.write("=" * 50 + "\n")
-        f.write(f"Delay fixo: {fixed_delay}ms\n")
-        f.write(f"Modo de geração de seeds: {seed_mode}\n")
-        if seed_mode == 'range':
-            f.write(f"Intervalo de seeds: {seed_start} a {seed_end}\n")
-        else:
-            f.write(f"Número de seeds: {num_seeds}\n")
-        f.write("\n")
-        
-        for seed in seeds:
-            f.write(f"Seed: {seed}\n")
-            f.write("-" * 30 + "\n")
-            
-            # Criar e salvar screenshot do mapa
-            map_path = create_map_screenshot(seed, map_dir)
-            f.write(f"Screenshot do mapa salvo como: {map_path}\n")
-            
-            # Executar múltiplas tentativas para cada peso
-            for weight in weights:
-                f.write(f"\nPeso do Jogador: {weight}\n")
-                f.write("-" * 20 + "\n")
-                
-                for try_num in range(1, num_tries + 1):
-                    print(f"Executando seed {seed}, peso {weight}, tentativa {try_num}/{num_tries}")
-                    result = run_game_with_seed(seed, try_num, weight, fixed_delay)
-                    
-                    if result:
-                        all_results.append(result)
-                        f.write(f"Tentativa {try_num}:\n")
-                        f.write(f"  Pontuação: {result['score']}\n")
-                        f.write(f"  Passos: {result['steps']}\n")
-                        f.write(f"  Bateria Final: {result['battery']}\n")
-                        f.write(f"  Timestamp: {result['timestamp']}\n")
-                        f.write("\n")
-            
+    try:
+        with open(results_file, 'w') as f:
+            f.write(f"Resultados do Jogo - Iniciado em {timestamp}\n")
+            f.write("=" * 50 + "\n")
+            f.write(f"Delay fixo: {fixed_delay}ms\n")
+            f.write(f"Peso fixo: 2.8\n")
+            f.write(f"Modo de geração de seeds: {seed_mode}\n")
+            if seed_mode == 'range':
+                f.write(f"Intervalo de seeds: {seed_start} a {seed_end}\n")
+            else:
+                f.write(f"Número de seeds: {num_seeds}\n")
             f.write("\n")
+            
+            for seed in seeds:
+                f.write(f"Seed: {seed}\n")
+                f.write("-" * 30 + "\n")
+                
+                # Criar e salvar screenshot do mapa
+                map_path = create_map_screenshot(seed, map_dir)
+                f.write(f"Screenshot do mapa salvo como: {map_path}\n")
+                
+                # Executar múltiplas tentativas para cada algoritmo
+                for algorithm in algorithms:
+                    f.write(f"\nAlgoritmo: {algorithm}\n")
+                    f.write("-" * 20 + "\n")
+                    
+                    for try_num in range(1, num_tries + 1):
+                        print(f"Executando seed {seed}, algoritmo {algorithm}, tentativa {try_num}/{num_tries}")
+                        result = run_game_with_seed(seed, try_num, algorithm, fixed_delay)
+                        
+                        if result:
+                            all_results.append(result)
+                            f.write(f"Tentativa {try_num}:\n")
+                            f.write(f"  Pontuação: {result['score']}\n")
+                            f.write(f"  Passos: {result['steps']}\n")
+                            f.write(f"  Bateria Final: {result['battery']}\n")
+                            f.write(f"  Timestamp: {result['timestamp']}\n")
+                            f.write("\n")
+                
+                f.write("\n")
     
-    # Criar DataFrame com todos os resultados
-    results_df = pd.DataFrame(all_results)
+        # Criar DataFrame com todos os resultados
+        results_df = pd.DataFrame(all_results)
+        
+        # Criar visualizações
+        create_visualizations(results_df, charts_dir)
+        
+        print(f"\nResultados salvos em: {results_file}")
+        print(f"Screenshots dos mapas salvos em: {map_dir}")
+        print(f"Gráficos salvos em: {charts_dir}")
+        print(f"Seeds usados: {seeds}")
     
-    # Criar visualizações
-    create_visualizations(results_df, charts_dir)
-    
-    print(f"\nResultados salvos em: {results_file}")
-    print(f"Screenshots dos mapas salvos em: {map_dir}")
-    print(f"Gráficos salvos em: {charts_dir}")
+    except Exception as e:
+        print(f"Erro durante a execução: {e}")
 
 if __name__ == "__main__":
     main() 

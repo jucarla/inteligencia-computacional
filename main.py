@@ -3,7 +3,17 @@ import random
 import heapq
 import sys
 import argparse
+import os
+import time
+import imageio
 from abc import ABC, abstractmethod
+
+# Importamos OpenCV apenas se disponível
+try:
+    import cv2
+    OPENCV_AVAILABLE = True
+except ImportError:
+    OPENCV_AVAILABLE = False
 
 # ==========================
 # CLASSES DE PLAYER
@@ -57,7 +67,7 @@ class DefaultPlayer(BasePlayer):
                 return best
             else:
                 return None
-
+    
 class SmartBatteryPlayer(BasePlayer):
     """
     Implementação inteligente do jogador que usa análise de custo-benefício e thresholds dinâmicos.
@@ -67,7 +77,7 @@ class SmartBatteryPlayer(BasePlayer):
     - Considera pegar múltiplos pacotes no caminho
     - Considera custo de recarga vs benefício da entrega
     """
-    def __init__(self, position, weight=1.0):
+    def __init__(self, position, weight=2.8):
         super().__init__(position)
         self.weight = weight  # Peso para ajustar os parâmetros do jogador
         self.base_battery_threshold = 25 * weight  # Limite base para recarregar
@@ -201,7 +211,9 @@ class SmartBatteryPlayer(BasePlayer):
             return self.battery >= delivery_dist
 
         recharger_dist = self.distance_to(current_pos, recharger_pos)
-        return (self.battery >= delivery_dist and delivery_dist <= recharger_dist)
+        # Para a última entrega, apenas verifica se tem bateria suficiente para chegar até o objetivo
+        # sem considerar a volta para o recharger (como estava originalmente)
+        return (self.battery >= delivery_dist)
 
     def escolher_alvo(self, world):
         if not world.recharger:
@@ -213,7 +225,14 @@ class SmartBatteryPlayer(BasePlayer):
 
         # Verifica se é a última entrega
         is_last = self.is_last_delivery(world)
-
+        
+        # Condição de recarga imediata: bateria igual ou menor à distância para recharger
+        if self.battery <= recharger_dist:
+            print(f"[ALERTA] RECARGA IMEDIATA! Bateria: {self.battery}, Distância ao recharger: {recharger_dist}")
+            world.show_emergency_alert = True  # Sinaliza para mostrar alerta na tela
+            world.alert_start_time = pygame.time.get_ticks()  # Marca o tempo de início do alerta
+            return world.recharger
+            
         # Se for a última entrega
         if is_last:
             goal = world.goals[0]  # Sabemos que só tem uma meta
@@ -254,6 +273,36 @@ class SmartBatteryPlayer(BasePlayer):
             print(f"Última entrega: Não encontrou caminho viável! Bateria: {self.battery}")
             return None
 
+        # LÓGICA PARA ENTREGAS NORMAIS (não-finais) - Evitar bateria negativa
+        
+        # Condição de bateria crítica para entregas normais: 
+        # se bateria for menor ou igual à distância para recharger + 5
+        # Sempre vai para o carregador, a não ser que esteja muito próximo do objetivo (raio <= 3)
+        if self.battery <= recharger_dist + 5:
+            # Verifica se há algum objetivo (pacote ou entrega) muito próximo
+            muito_proximo = False
+            
+            # Se estiver carregando pacotes, verifica se há alguma entrega muito próxima
+            if self.cargo > 0 and world.goals:
+                for goal in world.goals:
+                    if self.distance_to(current_pos, goal) <= 3:
+                        muito_proximo = True
+                        print(f"[ENTREGA PRÓXIMA] Completando entrega antes de recarregar! Bateria: {self.battery}, Distância: {self.distance_to(current_pos, goal)}")
+                        return goal
+            
+            # Se não estiver carregando pacotes, verifica se há algum pacote muito próximo
+            elif world.packages:
+                for pkg in world.packages:
+                    if self.distance_to(current_pos, pkg) <= 3:
+                        muito_proximo = True
+                        print(f"[PACOTE PRÓXIMO] Coletando pacote antes de recarregar! Bateria: {self.battery}, Distância: {self.distance_to(current_pos, pkg)}")
+                        return pkg
+            
+            # Se não tiver objetivo muito próximo, vai para o recharger
+            if not muito_proximo:
+                print(f"[ALERTA] Bateria crítica! Indo recarregar. Bateria: {self.battery}, Distância ao recharger: {recharger_dist}")
+                return world.recharger
+
         # Se não for a última entrega, aplica regra de recarga oportunista
         if recharger_dist <= 3 and self.battery < 45:
             return world.recharger
@@ -276,9 +325,14 @@ class SmartBatteryPlayer(BasePlayer):
                 for goal in world.goals:
                     value = self.calculate_path_value(current_pos, goal, world)
                     delivery_dist = self.distance_to(current_pos, goal)
-                    if (self.battery >= delivery_dist or 
-                        delivery_dist <= 5 or 
-                        value > self.delivery_points * 1.5):
+                    
+                    # Para entregas normais (não-finais):
+                    # 1. Se o alvo estiver muito próximo (<=3), podemos ir diretamente
+                    # 2. OU se a bateria for suficiente para o objetivo + distância para o recharger + 5 (margem)
+                    recharger_dist_from_goal = self.distance_to(goal, world.recharger)
+                    total_dist_needed = delivery_dist + recharger_dist_from_goal
+                    
+                    if delivery_dist <= 3 or self.battery >= total_dist_needed + 5:
                         if value > best_value:
                             best_value = value
                             best_goal = goal
@@ -286,8 +340,9 @@ class SmartBatteryPlayer(BasePlayer):
                 if best_goal:
                     return best_goal
 
-            if not is_last and self.battery < battery_threshold:
-                return world.recharger
+            # Se não encontrou destino seguro, recarrega
+            print(f"Nenhuma entrega segura encontrada. Indo recarregar. Bateria: {self.battery}")
+            return world.recharger
 
         # Se não estiver carregando ou puder pegar mais pacotes
         elif world.packages:
@@ -296,7 +351,14 @@ class SmartBatteryPlayer(BasePlayer):
             
             for pkg in world.packages:
                 pkg_dist = self.distance_to(current_pos, pkg)
-                if self.battery >= pkg_dist or pkg_dist <= 5:
+                
+                # Para coleta normal (não-final):
+                # 1. Se o pacote estiver muito próximo (<=3), podemos ir diretamente
+                # 2. OU se a bateria for suficiente para o pacote + distância para o recharger + 5 (margem)
+                pkg_to_recharger = self.distance_to(pkg, world.recharger)
+                total_dist_needed = pkg_dist + pkg_to_recharger
+                
+                if pkg_dist <= 3 or self.battery >= total_dist_needed + 5:
                     value = self.calculate_path_value(current_pos, pkg, world)
                     if value > best_value:
                         best_value = value
@@ -305,10 +367,11 @@ class SmartBatteryPlayer(BasePlayer):
             if best_pkg:
                 return best_pkg
 
-            if not is_last and self.battery < battery_threshold:
-                return world.recharger
+            # Se não encontrou pacote seguro, recarrega
+            print(f"Nenhum pacote seguro encontrado. Indo recarregar. Bateria: {self.battery}")
+            return world.recharger
 
-        if not is_last and self.battery < min_battery:
+        if self.battery < min_battery:
             return world.recharger
 
         return None
@@ -368,6 +431,11 @@ class World:
         pygame.init()
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Delivery Bot")
+        
+        # Inicializa fontes para texto
+        pygame.font.init()
+        self.font = pygame.font.SysFont('Arial', 16)
+        self.font_bold = pygame.font.SysFont('Arial', 16, bold=True)
 
         # Carrega imagens para pacote, meta e recharger a partir de arquivos
         self.package_image = pygame.image.load("images/cargo.png")
@@ -384,6 +452,16 @@ class World:
         self.ground_color = (255, 255, 255)
         self.player_color = (0, 255, 0)
         self.path_color = (200, 200, 0)
+        
+        # Cores para o indicador de bateria
+        self.battery_full_color = (0, 200, 0)  # Verde
+        self.battery_medium_color = (200, 200, 0)  # Amarelo
+        self.battery_low_color = (200, 0, 0)  # Vermelho
+        self.battery_bg_color = (50, 50, 50)  # Cinza escuro
+        
+        # Variáveis para mostrar alertas de emergência
+        self.show_emergency_alert = False
+        self.alert_start_time = 0
 
     def generate_obstacles(self):
         """
@@ -443,7 +521,7 @@ class World:
             return self.map[y][x] == 0
         return False
 
-    def draw_world(self, path=None):
+    def draw_world(self, path=None, steps=0, score=0):
         self.screen.fill(self.ground_color)
         # Desenha os obstáculos (paredes)
         for (x, y) in self.walls:
@@ -473,13 +551,88 @@ class World:
         x, y = self.player.position
         rect = pygame.Rect(x * self.block_size, y * self.block_size, self.block_size, self.block_size)
         pygame.draw.rect(self.screen, self.player_color, rect)
+        
+        # Desenha o indicador de bateria e estatísticas
+        self.draw_battery_indicator()
+        self.draw_game_stats(steps, score)
+        
         pygame.display.flip()
+        
+    def draw_battery_indicator(self):
+        # Configuração do indicador de bateria
+        battery_width = 150
+        battery_height = 20
+        x_pos = 10
+        y_pos = 10
+        border = 2
+        
+        # Determina a cor baseada no nível da bateria
+        battery_percent = max(0, min(100, self.player.battery / 70 * 100))
+        if battery_percent > 60:
+            color = (0, 200, 0)  # Verde
+        elif battery_percent > 30:
+            color = (200, 200, 0)  # Amarelo
+        else:
+            color = (200, 0, 0)  # Vermelho
+            
+        # Desenha a borda do indicador
+        border_rect = pygame.Rect(x_pos, y_pos, battery_width, battery_height)
+        pygame.draw.rect(self.screen, (50, 50, 50), border_rect)
+        
+        # Desenha o nível atual da bateria
+        fill_width = int((battery_width - 2 * border) * (battery_percent / 100))
+        fill_rect = pygame.Rect(x_pos + border, y_pos + border, 
+                               fill_width, battery_height - 2 * border)
+        pygame.draw.rect(self.screen, color, fill_rect)
+        
+        # Adiciona o texto de porcentagem e valor da bateria
+        if not hasattr(self, 'font'):
+            pygame.font.init()
+            self.font = pygame.font.SysFont('Arial', 16)
+            
+        battery_text = f"Bateria: {self.player.battery}/70"
+        text_surface = self.font.render(battery_text, True, (0, 0, 0))
+        self.screen.blit(text_surface, (x_pos + battery_width + 10, y_pos))
+        
+        # Desenha o limite mínimo de bateria
+        if hasattr(self.player, 'base_min_battery'):
+            min_battery = min(70, self.player.base_min_battery)
+            min_x = x_pos + border + int((battery_width - 2 * border) * (min_battery / 70))
+            pygame.draw.line(self.screen, (200, 0, 0), 
+                           (min_x, y_pos), (min_x, y_pos + battery_height), 2)
+    
+    def draw_game_stats(self, steps, score):
+        if not hasattr(self, 'font'):
+            pygame.font.init()
+            self.font = pygame.font.SysFont('Arial', 16)
+            
+        # Texto para passos
+        steps_text = f"Passos: {steps}"
+        steps_surface = self.font.render(steps_text, True, (0, 0, 0))
+        self.screen.blit(steps_surface, (10, 40))
+        
+        # Texto para pontuação
+        score_text = f"Pontuação: {score}"
+        score_surface = self.font.render(score_text, True, (0, 0, 0))
+        self.screen.blit(score_surface, (10, 65))
+        
+        # Texto para carga
+        cargo_text = f"Pacotes: {self.player.cargo}"
+        cargo_surface = self.font.render(cargo_text, True, (0, 0, 0))
+        self.screen.blit(cargo_surface, (10, 90))
+        
+        # Informação sobre recharge
+        if hasattr(self.player, 'distance_to') and self.recharger:
+            recharge_dist = self.player.distance_to(self.player.position, self.recharger)
+            recharge_text = f"Dist. ao Recharger: {recharge_dist}"
+            recharge_surface = self.font.render(recharge_text, True, (0, 0, 0))
+            self.screen.blit(recharge_surface, (10, 115))
 
 # ==========================
 # CLASSE MAZE: Lógica do jogo e planejamento de caminhos (A*)
 # ==========================
 class Maze:
-    def __init__(self, seed=None, delay=100):
+    def __init__(self, seed=None, delay=100, record=False, video_format='gif', pathfinding_algorithm='dijkstra'):
         self.world = World(seed)
         self.running = True
         self.score = 0
@@ -487,11 +640,100 @@ class Maze:
         self.delay = delay  # milissegundos entre movimentos
         self.path = []
         self.num_deliveries = 0  # contagem de entregas realizadas
+        
+        # Configurações para gravação de vídeo
+        self.record = record
+        self.video_format = video_format
+        self.frames = []  # Lista para armazenar os frames capturados
+        
+        # Algoritmo de pathfinding
+        self.pathfinding_algorithm = pathfinding_algorithm
 
     def heuristic(self, a, b):
         # Distância de Manhattan
         return abs(a[0] - b[0]) + abs(a[1] - b[1])
+    
+    def greedy_best_first(self, start, goal):
+        maze = self.world.map                                                       #Define o grid
+        size = self.world.maze_size                                                 #Define o tamanho do grid
+        neighbors = [(1, 0), (-1, 0), (0, 1), (0, -1)]                              #Define os nós vizinhos
 
+        open_set = []                                                               #Cria fila de prioridade de nós
+        heapq.heappush(open_set, (self.heuristic(start, goal), tuple(start)))       #Prioriza utilizando apenas a distância de Manhattan
+        came_from = {}                                                              #Dicionário para relacionar o nó anterior a cada nó
+        visited = set()                                                             #Cria um set para os nós já visitados
+
+        while open_set:                                                             
+            current = heapq.heappop(open_set)[1]                                    #Retira o nó de maior prioridade no set
+
+            if list(current) == goal:                                               #Se alcançar o destino, recria o caminho feito
+                path = []
+                while current in came_from:
+                    path.append(list(current))
+                    current = came_from[current]
+                path.reverse()
+                return path
+
+            visited.add(current)                                                    #Adiciona o nó ao set de visitados
+
+            for dx, dy in neighbors:                                                #Analisa os nós vizinhos
+                neighbor = (current[0] + dx, current[1] + dy)
+
+                if 0 <= neighbor[0] < size and 0 <= neighbor[1] < size:             #Verifica se o vizinho está dentro dos limites do grid
+                    if maze[neighbor[1]][neighbor[0]] == 1:                         #Verifica se é uma parede (obstáculo). Se for, ignore
+                        continue                                                    
+                else:                                                               #Se a posição for fora do mapa, ignore
+                    continue
+
+                if neighbor in visited:                                             #Se o nó já foi visitado, ignore
+                    continue
+
+                if neighbor not in [n[1] for n in open_set]:                        #Se o nó não foi adicionado ao set ainda, adicione
+                    came_from[neighbor] = current                                   #Adiciona o nó anterior do vizinho
+                    heapq.heappush(open_set, (self.heuristic(neighbor, goal), neighbor))
+
+        return []
+    
+    def dijkstra(self, start, goal):
+        maze = self.world.map
+        size = self.world.maze_size
+        neighbors = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+        close_set = set()
+        came_from = {}
+        gscore = {tuple(start): 0}
+        oheap = []
+        heapq.heappush(oheap, (0, tuple(start)))
+
+        while oheap:
+            current = heapq.heappop(oheap)[1]
+            if list(current) == goal:
+                data = []
+                while current in came_from:
+                    data.append(list(current))
+                    current = came_from[current]
+                data.reverse()
+                return data
+
+            close_set.add(current)
+            for dx, dy in neighbors:
+                neighbor = (current[0] + dx, current[1] + dy)
+                tentative_g = gscore[current] + 1
+
+                if 0 <= neighbor[0] < size and 0 <= neighbor[1] < size:
+                    if maze[neighbor[1]][neighbor[0]] == 1:
+                        continue
+                else:
+                    continue
+
+                if neighbor in close_set and tentative_g >= gscore.get(neighbor, 0):
+                    continue
+
+                if tentative_g < gscore.get(neighbor, float('inf')) or neighbor not in [i[1] for i in oheap]:
+                    came_from[neighbor] = current
+                    gscore[neighbor] = tentative_g
+                    heapq.heappush(oheap, (tentative_g, neighbor))
+        return []
+    
     def astar(self, start, goal):
         maze = self.world.map
         size = self.world.maze_size
@@ -530,6 +772,14 @@ class Maze:
         return []
 
     def game_loop(self):
+        # Cria diretório para salvar o vídeo se estiver em modo de gravação
+        if self.record:
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            video_dir = f"videos"
+            os.makedirs(video_dir, exist_ok=True)
+            video_filename = f"{video_dir}/game_recording_{timestamp}.{self.video_format}"
+            print(f"Gravando vídeo para: {video_filename}")
+            
         # O jogo termina quando o número de entregas realizadas é igual ao total de itens.
         while self.running:
             if self.num_deliveries >= self.world.total_items:
@@ -542,7 +792,17 @@ class Maze:
                 self.running = False
                 break
 
-            self.path = self.astar(self.world.player.position, target)
+            # Seleciona o algoritmo de pathfinding baseado no parâmetro
+            if self.pathfinding_algorithm == 'astar':
+                self.path = self.astar(self.world.player.position, target)
+            elif self.pathfinding_algorithm == 'greedy':
+                self.path = self.greedy_best_first(self.world.player.position, target)
+            elif self.pathfinding_algorithm == 'dijkstra':
+                self.path = self.dijkstra(self.world.player.position, target)
+            else:
+                # Default para A* se o algoritmo não for reconhecido
+                self.path = self.astar(self.world.player.position, target)
+                
             if not self.path:
                 print("Nenhum caminho encontrado para o alvo", target)
                 self.running = False
@@ -562,7 +822,16 @@ class Maze:
                 if self.world.recharger and pos == self.world.recharger:
                     self.world.player.battery = 60
                     print("Bateria recarregada!")
-                self.world.draw_world(self.path)
+                self.world.draw_world(self.path, self.steps, self.score)
+                
+                # Captura o frame atual para o vídeo se estiver em modo de gravação
+                if self.record:
+                    # Converte a tela do pygame para um array numpy
+                    frame = pygame.surfarray.array3d(self.world.screen)
+                    # Transpõe a matriz para o formato correto
+                    frame = frame.transpose([1, 0, 2])
+                    self.frames.append(frame)
+                
                 pygame.time.wait(self.delay)
 
             # Ao chegar ao alvo, processa a coleta ou entrega:
@@ -579,11 +848,32 @@ class Maze:
                     self.world.goals.remove(target)
                     self.score += 50
                     print("Pacote entregue em", target, "Cargo agora:", self.world.player.cargo)
+                # Atualiza o display após coleta/entrega
+                self.world.draw_world(self.path, self.steps, self.score)
+                
+                # Captura também esse frame
+                if self.record:
+                    frame = pygame.surfarray.array3d(self.world.screen)
+                    frame = frame.transpose([1, 0, 2])
+                    self.frames.append(frame)
+                    
             print(f"Passos: {self.steps}, Pontuação: {self.score}, Cargo: {self.world.player.cargo}, Bateria: {self.world.player.battery}, Entregas: {self.num_deliveries}")
 
         print("Fim de jogo!")
         print("Pontuação final:", self.score)
         print("Total de passos:", self.steps)
+        
+        # Salva o vídeo gravado
+        if self.record and self.frames:
+            print(f"Salvando vídeo do jogo...")
+            # Reduce FPS if too many frames (limit to ~15 seconds at 24fps)
+            total_frames = len(self.frames)
+            fps = min(24, max(10, total_frames // 15))
+            
+            # Salva o GIF
+            imageio.mimsave(video_filename, self.frames, fps=fps)
+            print(f"Vídeo salvo em: {video_filename}")
+        
         pygame.quit()
 
 # ==========================
@@ -611,9 +901,23 @@ if __name__ == "__main__":
         default=100,
         help="Delay em milissegundos entre movimentos (padrão: 100)."
     )
+    parser.add_argument(
+        "--record",
+        action="store_true",
+        help="Grava o vídeo do jogo (opcional)."
+    )
+    parser.add_argument(
+        "--pathfinding_algorithm",
+        type=str,
+        default="astar",
+        choices=["astar", "greedy", "dijkstra"],
+        help="Algoritmo de pathfinding (opções: astar, greedy, dijkstra)."
+    )
     args = parser.parse_args()
     
-    maze = Maze(seed=args.seed, delay=args.delay)
+    print(f"Iniciando jogo com: seed={args.seed}, weight={args.weight}, delay={args.delay}, algoritmo={args.pathfinding_algorithm}")
+    
+    maze = Maze(seed=args.seed, delay=args.delay, record=args.record, pathfinding_algorithm=args.pathfinding_algorithm)
     maze.world.player = SmartBatteryPlayer(maze.world.player.position, args.weight)
     maze.game_loop()
 

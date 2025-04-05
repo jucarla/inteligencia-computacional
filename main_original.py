@@ -3,6 +3,9 @@ import random
 import heapq
 import sys
 import argparse
+import os
+import time
+import imageio
 from abc import ABC, abstractmethod
 
 # ==========================
@@ -103,7 +106,7 @@ class World:
             if self.map[y][x] == 0 and [x, y] not in self.goals and [x, y] not in self.packages:
                 self.goals.append([x, y])
 
-        # Cria o jogador usando a classe DefaultPlayer (pode ser substituído por outra implementação)
+        # Cria o jogador usando a classe DefaultPlayer
         self.player = self.generate_player()
 
         # Coloca o recharger (recarga de bateria) próximo ao centro (região 3x3)
@@ -113,6 +116,11 @@ class World:
         pygame.init()
         self.screen = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Delivery Bot")
+        
+        # Inicializa fontes para texto
+        pygame.font.init()
+        self.font = pygame.font.SysFont('Arial', 16)
+        self.font_bold = pygame.font.SysFont('Arial', 16, bold=True)
 
         # Carrega imagens para pacote, meta e recharger a partir de arquivos
         self.package_image = pygame.image.load("images/cargo.png")
@@ -129,6 +137,16 @@ class World:
         self.ground_color = (255, 255, 255)
         self.player_color = (0, 255, 0)
         self.path_color = (200, 200, 0)
+        
+        # Cores para o indicador de bateria
+        self.battery_full_color = (0, 200, 0)  # Verde
+        self.battery_medium_color = (200, 200, 0)  # Amarelo
+        self.battery_low_color = (200, 0, 0)  # Vermelho
+        self.battery_bg_color = (50, 50, 50)  # Cinza escuro
+        
+        # Variáveis para mostrar alertas de emergência
+        self.show_emergency_alert = False
+        self.alert_start_time = 0
 
     def generate_obstacles(self):
         """
@@ -188,7 +206,7 @@ class World:
             return self.map[y][x] == 0
         return False
 
-    def draw_world(self, path=None):
+    def draw_world(self, path=None, steps=0, score=0):
         self.screen.fill(self.ground_color)
         # Desenha os obstáculos (paredes)
         for (x, y) in self.walls:
@@ -218,20 +236,85 @@ class World:
         x, y = self.player.position
         rect = pygame.Rect(x * self.block_size, y * self.block_size, self.block_size, self.block_size)
         pygame.draw.rect(self.screen, self.player_color, rect)
+        
+        # Desenha o indicador de bateria e estatísticas
+        self.draw_battery_indicator()
+        self.draw_game_stats(steps, score)
+        
         pygame.display.flip()
+        
+    def draw_battery_indicator(self):
+        # Configuração do indicador de bateria
+        battery_width = 150
+        battery_height = 20
+        x_pos = 10
+        y_pos = 10
+        border = 2
+        
+        # Determina a cor baseada no nível da bateria
+        battery_percent = max(0, min(100, self.player.battery / 70 * 100))
+        if battery_percent > 60:
+            color = (0, 200, 0)  # Verde
+        elif battery_percent > 30:
+            color = (200, 200, 0)  # Amarelo
+        else:
+            color = (200, 0, 0)  # Vermelho
+            
+        # Desenha a borda do indicador
+        border_rect = pygame.Rect(x_pos, y_pos, battery_width, battery_height)
+        pygame.draw.rect(self.screen, (50, 50, 50), border_rect)
+        
+        # Desenha o nível atual da bateria
+        fill_width = int((battery_width - 2 * border) * (battery_percent / 100))
+        fill_rect = pygame.Rect(x_pos + border, y_pos + border, 
+                               fill_width, battery_height - 2 * border)
+        pygame.draw.rect(self.screen, color, fill_rect)
+        
+        # Adiciona o texto de porcentagem e valor da bateria
+        if not hasattr(self, 'font'):
+            pygame.font.init()
+            self.font = pygame.font.SysFont('Arial', 16)
+            
+        battery_text = f"Bateria: {self.player.battery}/70"
+        text_surface = self.font.render(battery_text, True, (0, 0, 0))
+        self.screen.blit(text_surface, (x_pos + battery_width + 10, y_pos))
+    
+    def draw_game_stats(self, steps, score):
+        if not hasattr(self, 'font'):
+            pygame.font.init()
+            self.font = pygame.font.SysFont('Arial', 16)
+            
+        # Texto para passos
+        steps_text = f"Passos: {steps}"
+        steps_surface = self.font.render(steps_text, True, (0, 0, 0))
+        self.screen.blit(steps_surface, (10, 40))
+        
+        # Texto para pontuação
+        score_text = f"Pontuação: {score}"
+        score_surface = self.font.render(score_text, True, (0, 0, 0))
+        self.screen.blit(score_surface, (10, 65))
+        
+        # Texto para carga
+        cargo_text = f"Pacotes: {self.player.cargo}"
+        cargo_surface = self.font.render(cargo_text, True, (0, 0, 0))
+        self.screen.blit(cargo_surface, (10, 90))
 
 # ==========================
 # CLASSE MAZE: Lógica do jogo e planejamento de caminhos (A*)
 # ==========================
 class Maze:
-    def __init__(self, seed=None):
+    def __init__(self, seed=None, delay=100, record=False):
         self.world = World(seed)
         self.running = True
         self.score = 0
         self.steps = 0
-        self.delay = 100  # milissegundos entre movimentos
+        self.delay = delay  # milissegundos entre movimentos
         self.path = []
         self.num_deliveries = 0  # contagem de entregas realizadas
+        
+        # Configurações para gravação de vídeo
+        self.record = record
+        self.frames = []  # Lista para armazenar os frames capturados
 
     def heuristic(self, a, b):
         # Distância de Manhattan
@@ -275,6 +358,14 @@ class Maze:
         return []
 
     def game_loop(self):
+        # Cria diretório para salvar o vídeo se estiver em modo de gravação
+        if self.record:
+            timestamp = time.strftime("%Y%m%d_%H%M%S")
+            video_dir = f"videos"
+            os.makedirs(video_dir, exist_ok=True)
+            video_filename = f"{video_dir}/game_recording_original_{timestamp}.gif"
+            print(f"Gravando vídeo para: {video_filename}")
+            
         # O jogo termina quando o número de entregas realizadas é igual ao total de itens.
         while self.running:
             if self.num_deliveries >= self.world.total_items:
@@ -307,7 +398,16 @@ class Maze:
                 if self.world.recharger and pos == self.world.recharger:
                     self.world.player.battery = 60
                     print("Bateria recarregada!")
-                self.world.draw_world(self.path)
+                self.world.draw_world(self.path, self.steps, self.score)
+                
+                # Captura o frame atual para o vídeo se estiver em modo de gravação
+                if self.record:
+                    # Converte a tela do pygame para um array numpy
+                    frame = pygame.surfarray.array3d(self.world.screen)
+                    # Transpõe a matriz para o formato correto
+                    frame = frame.transpose([1, 0, 2])
+                    self.frames.append(frame)
+                
                 pygame.time.wait(self.delay)
 
             # Ao chegar ao alvo, processa a coleta ou entrega:
@@ -324,11 +424,32 @@ class Maze:
                     self.world.goals.remove(target)
                     self.score += 50
                     print("Pacote entregue em", target, "Cargo agora:", self.world.player.cargo)
+                # Atualiza o display após coleta/entrega
+                self.world.draw_world(self.path, self.steps, self.score)
+                
+                # Captura também esse frame
+                if self.record:
+                    frame = pygame.surfarray.array3d(self.world.screen)
+                    frame = frame.transpose([1, 0, 2])
+                    self.frames.append(frame)
+                    
             print(f"Passos: {self.steps}, Pontuação: {self.score}, Cargo: {self.world.player.cargo}, Bateria: {self.world.player.battery}, Entregas: {self.num_deliveries}")
 
         print("Fim de jogo!")
         print("Pontuação final:", self.score)
         print("Total de passos:", self.steps)
+        
+        # Salva o vídeo gravado
+        if self.record and self.frames:
+            print(f"Salvando vídeo do jogo...")
+            # Reduce FPS if too many frames (limit to ~15 seconds at 24fps)
+            total_frames = len(self.frames)
+            fps = min(24, max(10, total_frames // 15))
+            
+            # Salva o GIF
+            imageio.mimsave(video_filename, self.frames, fps=fps)
+            print(f"Vídeo salvo em: {video_filename}")
+        
         pygame.quit()
 
 # ==========================
@@ -344,8 +465,25 @@ if __name__ == "__main__":
         default=None,
         help="Valor do seed para recriar o mesmo mundo (opcional)."
     )
+    parser.add_argument(
+        "--weight",
+        type=float,
+        default=1.0,
+        help="Peso do jogador (não utilizado na versão original, apenas para compatibilidade)."
+    )
+    parser.add_argument(
+        "--delay",
+        type=int,
+        default=100,
+        help="Delay entre movimentos em milissegundos."
+    )
+    parser.add_argument(
+        "--record",
+        action="store_true",
+        help="Grava o vídeo do jogo."
+    )
     args = parser.parse_args()
     
-    maze = Maze(seed=args.seed)
+    maze = Maze(seed=args.seed, delay=args.delay, record=args.record)
     maze.game_loop()
 
