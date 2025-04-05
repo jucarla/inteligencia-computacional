@@ -23,15 +23,24 @@ def create_map_screenshot(seed, output_dir):
     pygame.quit()
     return screenshot_path
 
-def run_game_with_seed(seed, try_number, weight, delay=None):
+def run_game_with_seed(seed, try_number, algorithm, delay=None):
     """Executa o jogo com uma seed específica e retorna o output"""
     try:
-        cmd = ['python', 'main.py', '--seed', str(seed), '--weight', str(weight)]
+        # Fixando o peso em 2.8
+        weight = 2.8
+        cmd = ['python', 'main.py', '--seed', str(seed), '--weight', str(weight), '--pathfinding_algorithm', algorithm]
         if delay is not None:
             cmd.extend(['--delay', str(delay)])
             
+        print(f"Executando comando: {' '.join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, text=True)
         
+        # Debug: imprimir o código de retorno e stderr se houver erro
+        if result.returncode != 0:
+            print(f"Erro ao executar o comando (código {result.returncode})")
+            print(f"STDERR: {result.stderr}")
+            return None
+            
         output_lines = result.stdout.split('\n')
         final_score = None
         final_steps = None
@@ -49,6 +58,7 @@ def run_game_with_seed(seed, try_number, weight, delay=None):
         return {
             'seed': seed,
             'try_number': try_number,
+            'algorithm': algorithm,
             'weight': weight,
             'delay': delay if delay is not None else 100,  # Valor padrão se não especificado
             'score': final_score,
@@ -88,237 +98,98 @@ def create_visualizations(results_df, output_dir):
     plt.style.use('default')  # Usando estilo padrão do matplotlib
     sns.set_palette("husl")
     
-    # Paleta de cores fixada para heatmaps, cobrindo a escala fixa de -620 até 200
-    fixed_cmap = plt.cm.get_cmap('YlOrRd')
-    fixed_vmin = -200
-    fixed_vmax = 150
+    # Paleta de cores específica para os algoritmos
+    algorithm_colors = {
+        'astar': 'green',
+        'greedy': 'orange',
+        'dijkstra': 'blue'
+    }
     
-    # 1. Box Plot de Pontuações por Seed
-    plt.figure(figsize=(12, 6))
-    sns.boxplot(data=results_df, x='seed', y='score')
-    plt.title('Distribuição de Pontuações por Mapa')
-    plt.xlabel('Seed do Mapa')
-    plt.ylabel('Pontuação')
-    plt.savefig(os.path.join(output_dir, 'scores_by_seed.png'))
-    plt.close()
+    # Gráfico de barras comparando algoritmos por seed
+    plt.figure(figsize=(14, 8))
     
-    # 2. Box Plot de Pontuações por Peso
-    plt.figure(figsize=(12, 6))
-    sns.boxplot(data=results_df, x='weight', y='score')
-    plt.title('Distribuição de Pontuações por Peso')
-    plt.xlabel('Peso do Jogador')
-    plt.ylabel('Pontuação')
-    plt.savefig(os.path.join(output_dir, 'scores_by_weight.png'))
-    plt.close()
+    # Preparar dados para o gráfico
+    # Agrupar por seed e algoritmo e calcular a média da pontuação
+    grouped_data = results_df.groupby(['seed', 'algorithm'])['score'].mean().reset_index()
     
-    # 3. Heatmap de Pontuações (Seed vs Peso)
-    try:
-        pivot_df = results_df.pivot_table(values='score', index='seed', columns='weight', aggfunc='mean')
-        plt.figure(figsize=(12, 8))
-        # Usar escala fixa para o heatmap
-        sns.heatmap(pivot_df, annot=True, fmt='.0f', cmap=fixed_cmap, vmin=fixed_vmin, vmax=fixed_vmax)
-        plt.title('Pontuação Média por Mapa e Peso (Escala fixada: -200 a 150)')
-        plt.xlabel('Peso do Jogador')
-        plt.ylabel('Seed do Mapa')
-        plt.savefig(os.path.join(output_dir, 'score_heatmap.png'))
-        plt.close()
-    except Exception as e:
-        print(f"Erro ao criar heatmap: {e}")
+    # Pivotear para ter seeds como índice e algoritmos como colunas
+    pivot_data = grouped_data.pivot(index='seed', columns='algorithm', values='score')
     
-    # 4. Gráfico de Linha de Pontuações ao Longo das Tentativas
-    plt.figure(figsize=(12, 6))
-    for seed in results_df['seed'].unique():
-        seed_data = results_df[results_df['seed'] == seed]
-        plt.plot(seed_data['try_number'], seed_data['score'], label=f'Mapa {seed}')
-    plt.title('Evolução da Pontuação ao Longo das Tentativas')
-    plt.xlabel('Número da Tentativa')
-    plt.ylabel('Pontuação')
+    # Desenhar as barras agrupadas
+    bar_width = 0.25
+    seeds = pivot_data.index
+    x = np.arange(len(seeds))
+    
+    # Verificar quais algoritmos estão disponíveis nos dados
+    available_algorithms = pivot_data.columns.tolist()
+    
+    # Desenhar barras para cada algoritmo
+    for i, algorithm in enumerate(available_algorithms):
+        plt.bar(x + i*bar_width - bar_width, 
+                pivot_data[algorithm], 
+                bar_width, 
+                label=algorithm.capitalize(), 
+                color=algorithm_colors.get(algorithm, f'C{i}'))
+    
+    # Configurações do gráfico
+    plt.xlabel('Seed do Mapa', fontsize=12)
+    plt.ylabel('Pontuação Média', fontsize=12)
+    plt.title('Comparação da Pontuação por Algoritmo de Pathfinding (Peso fixo: 2.8)', fontsize=14)
+    plt.xticks(x, seeds)
     plt.legend()
-    plt.savefig(os.path.join(output_dir, 'score_evolution.png'))
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    
+    # Adicionar valores nas barras
+    for i, algorithm in enumerate(available_algorithms):
+        for j, score in enumerate(pivot_data[algorithm]):
+            plt.text(j + i*bar_width - bar_width, score + 5, f'{int(score)}', 
+                     ha='center', va='bottom', fontsize=9, rotation=0)
+    
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'algorithm_comparison.png'))
     plt.close()
     
-    # 5. Gráfico de Barras de Média de Pontuação por Peso
-    plt.figure(figsize=(12, 6))
-    weight_means = results_df.groupby('weight')['score'].mean()
-    
-    # Destacar barras com pontuação média positiva
-    colors = ['green' if score > 0 else 'red' for score in weight_means.values]
-    
-    weight_means.plot(kind='bar', color=colors)
-    plt.title('Pontuação Média por Peso do Jogador')
-    plt.xlabel('Peso do Jogador')
-    plt.ylabel('Pontuação Média')
-    
-    # Adicionar linha horizontal no zero para referência
-    plt.axhline(y=0, color='black', linestyle='-', alpha=0.3)
-    
-    # Ajustar o limite do eixo y para manter consistência com a escala fixa
-    plt.ylim(fixed_vmin, fixed_vmax)
-    
-    plt.savefig(os.path.join(output_dir, 'average_score_by_weight.png'))
-    plt.close()
-    
-    # 6. Gráfico de Bateria Final por Peso
-    plt.figure(figsize=(12, 6))
-    sns.boxplot(data=results_df, x='weight', y='battery')
-    plt.title('Distribuição da Bateria Final por Peso')
-    plt.xlabel('Peso do Jogador')
-    plt.ylabel('Bateria Final')
-    plt.savefig(os.path.join(output_dir, 'final_battery_by_weight.png'))
-    plt.close()
-    
-    # 7. Gráfico de Bateria Final por Seed
-    plt.figure(figsize=(12, 6))
-    sns.boxplot(data=results_df, x='seed', y='battery')
-    plt.title('Distribuição da Bateria Final por Mapa')
-    plt.xlabel('Seed do Mapa')
-    plt.ylabel('Bateria Final')
-    plt.savefig(os.path.join(output_dir, 'final_battery_by_seed.png'))
-    plt.close()
-    
-    # 8. Heatmap de Bateria Final (Seed vs Peso)
-    try:
-        battery_pivot = results_df.pivot_table(values='battery', index='seed', columns='weight', aggfunc='mean')
-        plt.figure(figsize=(12, 8))
-        sns.heatmap(battery_pivot, annot=True, fmt='.0f', cmap='Blues')
-        plt.title('Bateria Final Média por Mapa e Peso')
-        plt.xlabel('Peso do Jogador')
-        plt.ylabel('Seed do Mapa')
-        plt.savefig(os.path.join(output_dir, 'battery_heatmap.png'))
-        plt.close()
-    except Exception as e:
-        print(f"Erro ao criar heatmap de bateria: {e}")
-    
-    # 9. Gráfico separado para destacar os melhores pesos
-    try:
-        # Identificar pesos que tiveram pontuações positivas em todos os mapas
-        best_weights = []
-        for weight in results_df['weight'].unique():
-            weight_data = results_df[results_df['weight'] == weight]
-            if all(weight_data['score'] > 0):
-                best_weights.append(weight)
-                
-        if best_weights:
-            # Informar quais pesos foram bons para todos os mapas
-            print(f"Pesos com resultados positivos em todos os mapas: {best_weights}")
-            
-            # Salvar essa informação em um arquivo de texto
-            with open(os.path.join(output_dir, 'best_weights.txt'), 'w') as f:
-                f.write("Pesos com resultados positivos em todos os mapas:\n")
-                for weight in best_weights:
-                    f.write(f"- {weight}\n")
-                    
-            # Filtrar apenas os pesos bons
-            best_df = results_df[results_df['weight'].isin(best_weights)]
-            
-            plt.figure(figsize=(12, 6))
-            sns.boxplot(data=best_df, x='weight', y='score')
-            plt.title('Distribuição de Pontuações dos Melhores Pesos')
-            plt.xlabel('Peso do Jogador (Positivo em Todos Mapas)')
-            plt.ylabel('Pontuação')
-            plt.savefig(os.path.join(output_dir, 'best_weights_scores.png'))
-            plt.close()
-    except Exception as e:
-        print(f"Erro ao criar gráfico de melhores pesos: {e}")
-        
-    # 10. Comparação de peso vs passos (tempo para solução)
-    plt.figure(figsize=(12, 6))
-    step_pivot = results_df.pivot_table(values='steps', index='seed', columns='weight', aggfunc='mean')
-    sns.heatmap(step_pivot, annot=True, fmt='.0f', cmap='Greens', vmin=60, vmax=250)
-    plt.title('Média de Passos por Mapa e Peso (Escala fixada: 60 a 250)')
-    plt.xlabel('Peso do Jogador')
-    plt.ylabel('Seed do Mapa')
-    plt.savefig(os.path.join(output_dir, 'steps_heatmap.png'))
-    plt.close()
-    
-    # 11. NOVOS GRÁFICOS DE CORRELAÇÃO
-    
-    # Gráfico de correlação: Bateria Final vs Score
-    plt.figure(figsize=(10, 8))
-    sns.scatterplot(data=results_df, x='battery', y='score', hue='weight', palette='viridis', s=100, alpha=0.7)
-    plt.title('Correlação entre Bateria Final e Pontuação')
-    plt.xlabel('Bateria Final')
+    # Boxplot da distribuição de pontuações por algoritmo
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(data=results_df, x='algorithm', y='score', palette=algorithm_colors)
+    plt.title('Distribuição de Pontuações por Algoritmo de Pathfinding')
+    plt.xlabel('Algoritmo')
     plt.ylabel('Pontuação')
-    # Adicionar linha de tendência
-    sns.regplot(data=results_df, x='battery', y='score', scatter=False, color='red')
-    plt.savefig(os.path.join(output_dir, 'correlation_battery_score.png'))
+    plt.savefig(os.path.join(output_dir, 'score_boxplot_by_algorithm.png'))
     plt.close()
     
-    # Gráfico de correlação: Passos vs Score 
+    # Boxplot da distribuição de passos por algoritmo
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(data=results_df, x='algorithm', y='steps')
+    plt.title('Distribuição de Passos por Algoritmo de Pathfinding')
+    plt.xlabel('Algoritmo')
+    plt.ylabel('Número de Passos')
+    plt.savefig(os.path.join(output_dir, 'steps_boxplot_by_algorithm.png'))
+    plt.close()
+    
+    # Boxplot da distribuição de bateria final por algoritmo
+    plt.figure(figsize=(10, 6))
+    sns.boxplot(data=results_df, x='algorithm', y='battery')
+    plt.title('Distribuição de Bateria Final por Algoritmo de Pathfinding')
+    plt.xlabel('Algoritmo')
+    plt.ylabel('Bateria Final')
+    plt.savefig(os.path.join(output_dir, 'battery_boxplot_by_algorithm.png'))
+    plt.close()
+    
+    # Scatter plot comparando passos vs score, colorizado por algoritmo
     plt.figure(figsize=(10, 8))
-    sns.scatterplot(data=results_df, x='steps', y='score', hue='weight', palette='viridis', s=100, alpha=0.7)
-    plt.title('Correlação entre Número de Passos e Pontuação')
+    sns.scatterplot(data=results_df, x='steps', y='score', hue='algorithm', palette=algorithm_colors, s=100, alpha=0.7)
+    plt.title('Relação entre Número de Passos e Pontuação por Algoritmo')
     plt.xlabel('Número de Passos')
     plt.ylabel('Pontuação')
-    # Adicionar linha de tendência
-    sns.regplot(data=results_df, x='steps', y='score', scatter=False, color='red')
-    # Definir limites do eixo y entre -150 e 150
-    plt.ylim(-150, 150)
-    plt.savefig(os.path.join(output_dir, 'correlation_steps_score.png'))
+    plt.savefig(os.path.join(output_dir, 'steps_vs_score.png'))
     plt.close()
-    
-    # Gráfico de correlação: Bateria vs Passos
-    plt.figure(figsize=(10, 8))
-    sns.scatterplot(data=results_df, x='battery', y='steps', hue='weight', palette='viridis', s=100, alpha=0.7)
-    plt.title('Correlação entre Bateria Final e Número de Passos')
-    plt.xlabel('Bateria Final')
-    plt.ylabel('Número de Passos')
-    # Adicionar linha de tendência
-    sns.regplot(data=results_df, x='battery', y='steps', scatter=False, color='red')
-    plt.savefig(os.path.join(output_dir, 'correlation_battery_steps.png'))
-    plt.close()
-    
-    # Matriz de correlação entre todas as variáveis numéricas
-    plt.figure(figsize=(12, 10))
-    correlation_matrix = results_df[['weight', 'score', 'steps', 'battery']].corr()
-    sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1, fmt='.2f')
-    plt.title('Matriz de Correlação entre Variáveis')
-    plt.savefig(os.path.join(output_dir, 'correlation_matrix.png'))
-    plt.close()
-    
-    # 3D plot: Bateria, Passos e Score
-    try:
-        fig = plt.figure(figsize=(12, 10))
-        ax = fig.add_subplot(111, projection='3d')
-        
-        # Valores p/ scatter plot 3D
-        xs = results_df['battery']
-        ys = results_df['steps']
-        zs = results_df['score']
-        
-        # Colorir por peso
-        weights = results_df['weight']
-        
-        sc = ax.scatter(xs, ys, zs, c=weights, marker='o', s=50, cmap='viridis', alpha=0.7)
-        
-        ax.set_xlabel('Bateria Final')
-        ax.set_ylabel('Número de Passos')
-        ax.set_zlabel('Pontuação')
-        ax.set_title('Relação 3D: Bateria, Passos e Pontuação')
-        
-        # Adicionar barra de cores para indicar o peso
-        cbar = plt.colorbar(sc)
-        cbar.set_label('Peso do Jogador')
-        
-        plt.savefig(os.path.join(output_dir, 'correlation_3d.png'))
-        plt.close()
-    except Exception as e:
-        print(f"Erro ao criar gráfico 3D: {e}")
-    
-    # Pairplot - matriz de gráficos de dispersão para todas as combinações
-    try:
-        sns.pairplot(results_df[['weight', 'score', 'steps', 'battery']], diag_kind='kde')
-        plt.suptitle('Relações entre Peso, Pontuação, Passos e Bateria', y=1.02)
-        plt.savefig(os.path.join(output_dir, 'pairplot.png'))
-        plt.close()
-    except Exception as e:
-        print(f"Erro ao criar pairplot: {e}")
 
 def main():
     # Configuração
     num_tries = 1  # Número de tentativas por seed
     num_seeds = 10  # Número de seeds diferentes para tentar (usado apenas no modo random)
-    weights = np.arange(2,4, 0.2)  # Pesos de 0.1 a 10  com passo de 0.2
+    algorithms = ['astar', 'greedy', 'dijkstra']  # Algoritmos de pathfinding a testar
     fixed_delay = 1  # Delay para todas as tentativas (ms)
     output_dir = "results"
     map_dir = "maps"
@@ -355,6 +226,7 @@ def main():
             f.write(f"Resultados do Jogo - Iniciado em {timestamp}\n")
             f.write("=" * 50 + "\n")
             f.write(f"Delay fixo: {fixed_delay}ms\n")
+            f.write(f"Peso fixo: 2.8\n")
             f.write(f"Modo de geração de seeds: {seed_mode}\n")
             if seed_mode == 'range':
                 f.write(f"Intervalo de seeds: {seed_start} a {seed_end}\n")
@@ -370,14 +242,14 @@ def main():
                 map_path = create_map_screenshot(seed, map_dir)
                 f.write(f"Screenshot do mapa salvo como: {map_path}\n")
                 
-                # Executar múltiplas tentativas para cada peso
-                for weight in weights:
-                    f.write(f"\nPeso do Jogador: {weight}\n")
+                # Executar múltiplas tentativas para cada algoritmo
+                for algorithm in algorithms:
+                    f.write(f"\nAlgoritmo: {algorithm}\n")
                     f.write("-" * 20 + "\n")
                     
                     for try_num in range(1, num_tries + 1):
-                        print(f"Executando seed {seed}, peso {weight}, tentativa {try_num}/{num_tries}")
-                        result = run_game_with_seed(seed, try_num, weight, fixed_delay)
+                        print(f"Executando seed {seed}, algoritmo {algorithm}, tentativa {try_num}/{num_tries}")
+                        result = run_game_with_seed(seed, try_num, algorithm, fixed_delay)
                         
                         if result:
                             all_results.append(result)

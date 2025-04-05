@@ -632,7 +632,7 @@ class World:
 # CLASSE MAZE: Lógica do jogo e planejamento de caminhos (A*)
 # ==========================
 class Maze:
-    def __init__(self, seed=None, delay=100, record=False, video_format='gif'):
+    def __init__(self, seed=None, delay=100, record=False, video_format='gif', pathfinding_algorithm='dijkstra'):
         self.world = World(seed)
         self.running = True
         self.score = 0
@@ -643,9 +643,11 @@ class Maze:
         
         # Configurações para gravação de vídeo
         self.record = record
-        self.video_format = video_format  # 'gif' ou 'mp4'
+        self.video_format = video_format
         self.frames = []  # Lista para armazenar os frames capturados
-        self.video_writer = None  # Para OpenCV
+        
+        # Algoritmo de pathfinding
+        self.pathfinding_algorithm = pathfinding_algorithm
 
     def heuristic(self, a, b):
         # Distância de Manhattan
@@ -775,7 +777,7 @@ class Maze:
             timestamp = time.strftime("%Y%m%d_%H%M%S")
             video_dir = f"videos"
             os.makedirs(video_dir, exist_ok=True)
-            video_filename = f"{video_dir}/game_recording_{timestamp}.gif"
+            video_filename = f"{video_dir}/game_recording_{timestamp}.{self.video_format}"
             print(f"Gravando vídeo para: {video_filename}")
             
         # O jogo termina quando o número de entregas realizadas é igual ao total de itens.
@@ -790,7 +792,17 @@ class Maze:
                 self.running = False
                 break
 
-            self.path = self.astar(self.world.player.position, target)
+            # Seleciona o algoritmo de pathfinding baseado no parâmetro
+            if self.pathfinding_algorithm == 'astar':
+                self.path = self.astar(self.world.player.position, target)
+            elif self.pathfinding_algorithm == 'greedy':
+                self.path = self.greedy_best_first(self.world.player.position, target)
+            elif self.pathfinding_algorithm == 'dijkstra':
+                self.path = self.dijkstra(self.world.player.position, target)
+            else:
+                # Default para A* se o algoritmo não for reconhecido
+                self.path = self.astar(self.world.player.position, target)
+                
             if not self.path:
                 print("Nenhum caminho encontrado para o alvo", target)
                 self.running = False
@@ -894,9 +906,18 @@ if __name__ == "__main__":
         action="store_true",
         help="Grava o vídeo do jogo (opcional)."
     )
+    parser.add_argument(
+        "--pathfinding_algorithm",
+        type=str,
+        default="astar",
+        choices=["astar", "greedy", "dijkstra"],
+        help="Algoritmo de pathfinding (opções: astar, greedy, dijkstra)."
+    )
     args = parser.parse_args()
     
-    maze = Maze(seed=args.seed, delay=args.delay, record=args.record)
+    print(f"Iniciando jogo com: seed={args.seed}, weight={args.weight}, delay={args.delay}, algoritmo={args.pathfinding_algorithm}")
+    
+    maze = Maze(seed=args.seed, delay=args.delay, record=args.record, pathfinding_algorithm=args.pathfinding_algorithm)
     maze.world.player = SmartBatteryPlayer(maze.world.player.position, args.weight)
     maze.game_loop()
 
